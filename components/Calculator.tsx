@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  calculate, fmt, num, priceForTarget, CURRENCIES, DEFAULT_INPUTS, PAYMENT_METHODS, SALLA_PLANS, SALLA_SAMPLE_PAYMENTS,
+  calculate, fmt, num, priceForTarget, CURRENCIES, DEFAULT_INPUTS, PAYMENT_METHODS,
   type AdMode, type Inputs, type Target,
 } from "@/lib/calc";
-import { clearHash, isDefault, load, readHash, save, shareUrl, type Snapshot } from "@/lib/state";
+import { clearHash, load, readHash, sameAs, save, shareUrl, DEFAULT_SNAPSHOT, type Snapshot } from "@/lib/state";
+import { SALLA, type Platform } from "@/lib/platforms";
+import type { Var } from "./charts/SensitivityChart";
 import { PrintReport } from "./PrintReport";
 import { BreakdownBar } from "./charts/BreakdownBar";
 import { SensitivityChart } from "./charts/SensitivityChart";
@@ -74,12 +76,34 @@ const Money = ({ v, cur, sign }: { v: number; cur: string; sign?: boolean }) => 
 
 /* ───────── calculator ───────── */
 
-export function Calculator({ siteName }: { siteName: string }) {
-  const [inp, setInp] = useState<Inputs>(DEFAULT_INPUTS);
-  const [cur, setCur] = useState<string>(CURRENCIES[0].symbol);
+export type CalculatorPreset = {
+  /** inputs that differ from the general defaults; also what "reset" returns to on this page */
+  inputs?: Partial<Inputs>;
+  plan?: string;
+  target?: Target;
+  /** which variable the sensitivity chart opens on */
+  chartVar?: Var;
+  /** separate saved copy per page ("" = the home calculator) */
+  storageKey?: string;
+};
+
+const NO_PRESET: CalculatorPreset = {};
+
+export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
+  siteName: string; platform?: Platform; preset?: CalculatorPreset;
+}) {
+  // The starting point of this page: home = general defaults, landing pages = their preset.
+  const base = useMemo<Snapshot>(() => ({
+    ...DEFAULT_SNAPSHOT,
+    inp: { ...DEFAULT_INPUTS, ...preset.inputs },
+    plan: preset.plan ?? "",
+    target: preset.target ?? DEFAULT_SNAPSHOT.target,
+  }), [preset]);
+  const [inp, setInp] = useState<Inputs>(base.inp);
+  const [cur, setCur] = useState<string>(base.cur);
   const [productName, setProductName] = useState("");
-  const [plan, setPlan] = useState("");
-  const [target, setTarget] = useState<Target>({ kind: "margin", value: "" });
+  const [plan, setPlan] = useState(base.plan);
+  const [target, setTarget] = useState<Target>(base.target);
   const [targetFocus, setTargetFocus] = useState(0); // bumps → chart switches to price mode and focuses the target field
   const [restored, setRestored] = useState(false);   // don't overwrite storage with defaults before reading it
   const [retAs, setRetAs] = useState<"ret" | "delivery">("ret"); // type returns, or delivery rate (= 100 − returns)
@@ -124,12 +148,12 @@ export function Calculator({ siteName }: { siteName: string }) {
       clearHash(); // later edits shouldn't look like the sender's numbers
       toast.show("فتحنا الحسبة اللي وصلتك. عدّل عليها براحتك، نسختك منفصلة عن المرسل", { kind: "info", duration: 4500 });
     } else {
-      const saved = load();
-      if (saved && !isDefault(saved)) {
+      const saved = load(preset.storageKey);
+      if (saved && !sameAs(saved, base)) {
         apply(saved);
         toast.show("رجّعنا آخر أرقام كتبتها", {
           kind: "info", duration: 5000,
-          action: { label: "ابدأ من جديد", run: () => apply({ inp: DEFAULT_INPUTS, cur: CURRENCIES[0].symbol, productName: "", plan: "", target: { kind: "margin", value: "" } }) },
+          action: { label: "ابدأ من جديد", run: () => apply(base) },
         });
       }
     }
@@ -140,9 +164,9 @@ export function Calculator({ siteName }: { siteName: string }) {
   // Save on every change (debounced). Stays in this browser only.
   useEffect(() => {
     if (!restored) return;
-    const t = setTimeout(() => save({ inp, cur, productName, plan, target }), 400);
+    const t = setTimeout(() => save({ inp, cur, productName, plan, target }, base, preset.storageKey), 400);
     return () => clearTimeout(t);
-  }, [restored, inp, cur, productName, plan, target]);
+  }, [restored, inp, cur, productName, plan, target, base, preset.storageKey]);
 
   const share = async () => {
     const url = shareUrl(snapshot());
@@ -164,16 +188,16 @@ export function Calculator({ siteName }: { siteName: string }) {
     toast.show("تم نسخ رابط الحسبة. أي أحد يفتحه يشوف نفس أرقامك");
   };
 
-  const sallaFilled = inp.payments.slice(0, 2).every((r, i) =>
-    num(r.pct) === num(SALLA_SAMPLE_PAYMENTS[i].pct) && num(r.fixed) === num(SALLA_SAMPLE_PAYMENTS[i].fixed));
+  const sallaFilled = inp.payments.slice(0, platform.fillRows).every((r, i) =>
+    num(r.pct) === num(platform.samplePayments[i].pct) && num(r.fixed) === num(platform.samplePayments[i].fixed));
 
   // Shown only when the payment section differs from its defaults (e.g. after the Salla fill or manual edits)
   const paymentsChanged =
-    JSON.stringify(inp.payments) !== JSON.stringify(DEFAULT_INPUTS.payments) || inp.feeVat !== DEFAULT_INPUTS.feeVat;
+    JSON.stringify(inp.payments) !== JSON.stringify(base.inp.payments) || inp.feeVat !== base.inp.feeVat;
 
   const resetPayments = () => {
     const before = { payments: inp.payments, feeVat: inp.feeVat };
-    setInp((s) => ({ ...s, payments: DEFAULT_INPUTS.payments.map((r) => ({ ...r })), feeVat: DEFAULT_INPUTS.feeVat }));
+    setInp((s) => ({ ...s, payments: base.inp.payments.map((r) => ({ ...r })), feeVat: base.inp.feeVat }));
     setFilled(0);
     setPayReset(Date.now());
     toast.show("رجعت وسائل الدفع للقيم الافتراضية", {
@@ -184,14 +208,14 @@ export function Calculator({ siteName }: { siteName: string }) {
 
   const fillSalla = () => {
     const before = inp.payments;
-    set("payments", SALLA_SAMPLE_PAYMENTS.map((r) => ({ ...r })));
+    set("payments", platform.samplePayments.map((r) => ({ ...r })));
     setFilled(Date.now());
-    toast.show("تمت تعبئة رسوم مدى والبطاقات من سلة", { action: { label: "تراجع", run: () => set("payments", before) } });
+    toast.show(`تمت تعبئة رسوم ${platform.name}`, { action: { label: "تراجع", run: () => set("payments", before) } });
   };
 
   const reset = () => {
     const before = { inp, cur, productName, plan, target };
-    setInp(DEFAULT_INPUTS); setCur(CURRENCIES[0].symbol); setProductName(""); setPlan(""); setTarget({ kind: "margin", value: "" });
+    apply(base);
     toast.show("رجعت الأرقام للقيم الافتراضية", {
       kind: "info",
       action: { label: "تراجع", run: () => apply(before) },
@@ -255,16 +279,16 @@ export function Calculator({ siteName }: { siteName: string }) {
           </Group>
 
           <Group title="الشحن والمنصة"
-            note="أسعار باقات سلة من صفحة الأسعار الرسمية (1 أكتوبر 2026) وقد تتغير. الاشتراك السنوي مقسوم على 12 شهراً.">
+            note={platform.plansNote}>
             <div className="grid grid-cols-2 items-end gap-3">
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
               <Field label="عمولة المنصة" suffix="%" value={inp.comm} onChange={(v) => set("comm", v)} />
               <label className="col-span-2 block min-w-0 text-sm text-muted">
-                باقة سلة
+                باقة {platform.name}
                 <select value={plan} className={`${box} mt-1 px-3 py-2.5`}
                   onChange={(e) => { setPlan(e.target.value); if (e.target.value !== "") set("fixedMonthly", e.target.value); }}>
-                  <option value="">لا أستخدم سلة، أو سأدخل التكلفة يدوياً</option>
-                  {SALLA_PLANS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  <option value="">لا أستخدم {platform.name}، أو سأدخل التكلفة يدوياً</option>
+                  {platform.plans.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </label>
               <Field label="تكاليف ثابتة شهرية" suffix={cur} value={inp.fixedMonthly}
@@ -273,10 +297,7 @@ export function Calculator({ siteName }: { siteName: string }) {
             </div>
           </Group>
 
-          <Group title="وسائل الدفع" note={
-            <>مدى: 1% + 1 ريال (مؤكد من سلة). البطاقات: مقال سلة يذكر 2% + 1 ولوحة التحكم تذكر 2.2% + 1، فالزر يستخدم 2.2%
-              حتى لا يبالغ في ربحك. Apple Pay بنفس رسوم البطاقة المستخدمة. مراجعة: 1 أكتوبر 2026.</>
-          }>
+          <Group title="وسائل الدفع" note={platform.feesNote}>
             <div className="grid grid-cols-3 gap-x-2 gap-y-1 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] sm:items-end">
               <span className="hidden sm:block" />
               <span className="text-xs text-muted">من الطلبات</span>
@@ -287,7 +308,7 @@ export function Calculator({ siteName }: { siteName: string }) {
                   <b className="col-span-3 mt-3 text-sm font-medium text-ink sm:col-span-1 sm:mt-0 sm:self-center">{m}</b>
                   {(["share", "pct", "fixed"] as const).map((k) => (
                     <NumInput key={k} value={inp.payments[i][k]} onChange={(v) => setPay(i, k, v)}
-                      suffix={k === "fixed" ? cur : "%"} flashKey={(filled && i < 2 ? filled : 0) || payReset || undefined}
+                      suffix={k === "fixed" ? cur : "%"} flashKey={(filled && i < platform.fillRows ? filled : 0) || payReset || undefined}
                       ariaLabel={`${m}: ${k === "share" ? "نسبة الطلبات" : k === "pct" ? "الرسم بالنسبة" : "الرسم الثابت"}`} />
                   ))}
                 </div>
@@ -302,7 +323,7 @@ export function Calculator({ siteName }: { siteName: string }) {
                 className="rounded-lg border border-accent px-4 py-2 text-sm font-medium text-accent transition duration-200 ease-out
                   hover:bg-accent hover:text-surface active:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
                   disabled:cursor-not-allowed disabled:border-line disabled:text-muted disabled:hover:bg-transparent">
-                عبّئ برسوم سلة (مدى والبطاقات)
+                {platform.fillLabel}
               </button>
               {paymentsChanged && (
                 <button type="button" onClick={resetPayments}
@@ -315,7 +336,7 @@ export function Calculator({ siteName }: { siteName: string }) {
                 </button>
               )}
               <span className={`text-sm text-muted transition-opacity duration-200 ${sallaFilled ? "opacity-100" : "opacity-0"}`} aria-hidden={!sallaFilled}>
-                رسوم سلة معبأة
+                رسوم {platform.name} معبأة
               </span>
             </div>
             <Field className="mt-4 max-w-[50%]" label="ضريبة على رسوم الدفع" suffix="%" value={inp.feeVat} onChange={(v) => set("feeVat", v)} />
@@ -492,7 +513,7 @@ export function Calculator({ siteName }: { siteName: string }) {
         </section>
       </div>
 
-      <div className="mt-6"><SensitivityChart inp={inp} cur={cur} target={target} setTarget={setTarget} focusTarget={targetFocus} /></div>
+      <div className="mt-6"><SensitivityChart inp={inp} cur={cur} target={target} setTarget={setTarget} focusTarget={targetFocus} initialVar={preset.chartVar} /></div>
 
       {/* ───── mobile: net result always in reach while editing ───── */}
       <div aria-hidden={receiptVisible}

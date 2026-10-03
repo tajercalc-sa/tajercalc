@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { calculate, fmt, num, priceForTarget, type Inputs, type Target } from "@/lib/calc";
 import { FollowTip } from "./FollowTip";
 
-type Var = "ret" | "ads" | "price" | "orders";
+export type Var = "ret" | "ads" | "price" | "orders";
 
 // short = the button (fits 4 across on a 320px phone); label = used inside sentences
 const VARS: { v: Var; short: string; label: string }[] = [
@@ -36,10 +36,10 @@ function niceTicks(min: number, max: number, count = 5) {
  * Crosshair snaps to the nearest point, cursor-following tooltip, arrow keys for keyboard users,
  * and a table view so no value is hover-only.
  */
-export function SensitivityChart({ inp, cur, target, setTarget, focusTarget }: {
-  inp: Inputs; cur: string; target: Target; setTarget: (t: Target) => void; focusTarget: number;
+export function SensitivityChart({ inp, cur, target, setTarget, focusTarget, initialVar = "ret" }: {
+  inp: Inputs; cur: string; target: Target; setTarget: (t: Target) => void; focusTarget: number; initialVar?: Var;
 }) {
-  const [v, setV] = useState<Var>("ret");
+  const [v, setV] = useState<Var>(initialVar);
   const targetInput = useRef<HTMLInputElement>(null);
   const section = useRef<HTMLElement>(null);
 

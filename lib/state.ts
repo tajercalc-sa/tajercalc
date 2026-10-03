@@ -103,9 +103,15 @@ export function clearHash() {
 }
 
 /* ── browser storage (per visitor, never leaves the device) ── */
-export function save(s: Snapshot) {
-  try { isDefault(s) ? localStorage.removeItem(STORAGE_KEY) : localStorage.setItem(STORAGE_KEY, JSON.stringify(diff(s))); } catch { /* private mode / blocked */ }
+/** Same numbers as `base`? Preset pages start from their own preset, so "untouched" means equal to it. */
+export const sameAs = (s: Snapshot, base: Snapshot) => JSON.stringify(diff(s)) === JSON.stringify(diff(base));
+
+/** Each page keeps its own copy (key suffix), so a Zid visitor's numbers don't replace the Salla page's preset. */
+export function save(s: Snapshot, base: Snapshot = DEFAULT_SNAPSHOT, key = "") {
+  const k = key ? `${STORAGE_KEY}:${key}` : STORAGE_KEY;
+  try { sameAs(s, base) ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(diff(s))); } catch { /* private mode / blocked */ }
 }
-export function load(): Snapshot | null {
-  try { const v = localStorage.getItem(STORAGE_KEY); return v ? parse(JSON.parse(v)) : null; } catch { return null; }
+export function load(key = ""): Snapshot | null {
+  const k = key ? `${STORAGE_KEY}:${key}` : STORAGE_KEY;
+  try { const v = localStorage.getItem(k); return v ? parse(JSON.parse(v)) : null; } catch { return null; }
 }

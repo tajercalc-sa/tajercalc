@@ -18,3 +18,12 @@ export const NAV = [
   { href: "/about/", label: "من نحن" },
   { href: "/contact/", label: "تواصل معنا" },
 ];
+
+/** Landing pages: the same calculator, preset for one search intent, with its own article. */
+export const TOOLS = [
+  { href: "/salla-profit-calculator/", label: "حاسبة أرباح سلة" },
+  { href: "/zid-profit-calculator/", label: "حاسبة أرباح زد" },
+  { href: "/cod-calculator/", label: "حاسبة الدفع عند الاستلام" },
+  { href: "/roas-calculator/", label: "حاسبة ROAS والإعلانات" },
+  { href: "/pricing-calculator/", label: "حاسبة سعر البيع" },
+];
