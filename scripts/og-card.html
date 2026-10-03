@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- Source of public/og.png (1200×630). Re-render with any headless browser screenshot at that size. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Plex;font-weight:700;src:url(../node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-700-normal.woff2) format("woff2")}
+@font-face{font-family:Plex;font-weight:400;src:url(../node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff2) format("woff2")}
+@font-face{font-family:Plex;font-weight:700;src:url(../node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2212}
+@font-face{font-family:Plex;font-weight:400;src:url(../node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2212}
+*{box-sizing:border-box;margin:0}
+body{width:1200px;height:630px;background:#eef1ec;font-family:Plex,sans-serif;color:#1d2a33;display:flex;align-items:center;gap:64px;padding:0 80px;overflow:hidden}
+.text{flex:1}
+h1{font-size:64px;line-height:1.25;font-weight:700}
+p{margin-top:22px;font-size:30px;line-height:1.55;color:#4c5a61;max-width:22ch}
+.url{margin-top:34px;font-size:30px;font-weight:700;color:#0b6e4f;direction:ltr;text-align:right}
+.receipt{width:360px;flex:none;background:#fff;padding:34px 34px 40px;position:relative;border-radius:22px 22px 0 0;filter:drop-shadow(0 10px 24px rgba(0,0,0,.08))}
+.receipt::after{content:"";position:absolute;inset-inline:0;bottom:-15px;height:16px;background:linear-gradient(135deg,#fff 50%,transparent 50%) 0 0/22px 16px repeat-x,linear-gradient(225deg,#fff 50%,transparent 50%) 0 0/22px 16px repeat-x}
+.row{display:flex;justify-content:space-between;font-size:24px;padding:9px 0;color:#4c5a61}
+.row b{direction:ltr;font-weight:400;color:#1d2a33}
+.bar{display:flex;gap:3px;height:14px;margin:18px 0}
+.bar i{display:block;height:100%}
+.net{border-top:3px dashed #9aa6ab;margin-top:6px;padding-top:16px;display:flex;justify-content:space-between;align-items:flex-end}
+.net span{font-size:26px;font-weight:700}
+.net b{font-size:52px;color:#0b6e4f;line-height:1;direction:ltr}
+</style></head><body>
+<div class="text">
+  <h1>حاسبة أرباح المتجر الإلكتروني</h1>
+  <p>صافي ربح كل طلب بعد الرسوم والمرتجعات والإعلان، ومتى يبدأ بالخسارة</p>
+  <div class="url">tajercalc.com</div>
+</div>
+<div class="receipt">
+  <div class="row"><span>سعر البيع</span><b>100</b></div>
+  <div class="row"><span>تكلفة المنتج</span><b>−36</b></div>
+  <div class="row"><span>الشحن</span><b>−16.5</b></div>
+  <div class="row"><span>الإعلان</span><b>−20</b></div>
+  <div class="bar"><i style="flex:36;background:#2a78d6;border-radius:0 5px 5px 0"></i><i style="flex:16.5;background:#eb6834"></i><i style="flex:10;background:#eda100"></i><i style="flex:20;background:#008300"></i><i style="flex:17.5;background:#4a3aa7;border-radius:5px 0 0 5px"></i></div>
+  <div class="net"><span>صافي الطلب</span><b>17.5</b></div>
+</div>
+</body></html>

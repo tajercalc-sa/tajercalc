@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حاسبة أرباح المتجر الإلكتروني</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f5f7;--surface:#fff;--ink:#14212b;--muted:#5b6b78;--line:#d9e1e7;--accent:#0f766e;--loss:#b42318;--warn:#9a6700;--c1:#14212b;--c2:#5b7f95;--c3:#d69e2e;--c4:#c2410c;--c5:#8b95a1;--c6:#7c3aed;--c7:#0f766e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1519;--surface:#172128;--ink:#e8eef2;--muted:#9fb0bc;--line:#2a3945;--accent:#2dd4bf;--loss:#f97066;--warn:#f0b849;--c1:#e8eef2;--c2:#7fa3ba;--c3:#f0b849;--c4:#fb8a4b;--c5:#8b95a1;--c6:#a78bfa;--c7:#2dd4bf}}
+:root[data-theme="dark"]{--bg:#0e1519;--surface:#172128;--ink:#e8eef2;--muted:#9fb0bc;--line:#2a3945;--accent:#2dd4bf;--loss:#f97066;--warn:#f0b849;--c1:#e8eef2;--c2:#7fa3ba;--c3:#f0b849;--c4:#fb8a4b;--c5:#8b95a1;--c6:#a78bfa;--c7:#2dd4bf}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;line-height:1.7;font-size:16px}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.6rem;margin:8px 0 4px;line-height:1.3}
+.sub{color:var(--muted);margin:0 0 20px;max-width:60ch}
+.grid{display:grid;gap:16px}
+@media(min-width:900px){.grid{grid-template-columns:1.1fr .9fr;align-items:start}.res{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+fieldset{border:0;margin:0 0 10px;padding:0;min-width:0}
+legend{font-weight:700;padding:0;margin-bottom:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:.92rem;color:var(--muted);margin-bottom:10px}
+input[type=number]{width:100%;min-width:0;margin-top:4px;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;direction:ltr;text-align:right}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input:disabled{opacity:.5}
+select{width:100%;margin-top:4px;padding:10px 8px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--ink);margin:0 0 10px}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.pay{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:6px;align-items:end;margin-bottom:6px}
+.pay span{font-size:.8rem;color:var(--muted)}
+.pay b{font-weight:500;font-size:.9rem;align-self:center}
+.pay input{padding:8px 6px;margin-top:0}
+.sum{font-size:.85rem;margin:2px 0 8px;color:var(--muted)}
+.sum.bad{color:var(--warn)}
+.sample{font:inherit;font-size:.88rem;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;cursor:pointer}
+.warn{font-size:.82rem;color:var(--warn);margin:6px 0 0}
+.num{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.big{font-size:2.4rem;font-weight:700;line-height:1.2;margin:2px 0}
+.big.loss{color:var(--loss)}.big.ok{color:var(--accent)}
+.state{font-weight:700;margin:0 0 12px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px}
+.kpi span{display:block;font-size:.82rem;color:var(--muted)}
+.kpi b{font-size:1.1rem}
+.bar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line);margin:8px 0 12px}
+.bar i{display:block;height:100%}
+.legend{list-style:none;margin:0;padding:0;font-size:.92rem}
+.legend li{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.legend li:last-child{border-bottom:0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.legend .v{margin-inline-start:auto;font-weight:500}
+.note{font-size:.85rem;color:var(--muted);margin-top:14px}
+h2{font-size:1.05rem;margin:0 0 6px}
+[hidden]{display:none!important}
+input[type=text]{width:100%;min-width:0;margin-top:4px;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+#printreport{display:none}
+@page{size:A4;margin:0}
+@media print{
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{--bg:#fff;--surface:#fff;--ink:#111;--muted:#444;--line:#bbb;--accent:#0f766e;--loss:#b42318;--warn:#6b4a00;--c1:#14212b;--c2:#5b7f95;--c3:#d69e2e;--c4:#c2410c;--c5:#8b95a1;--c6:#7c3aed;--c7:#0f766e}
+html,body{background:#fff!important;color:#111}
+body>*:not(#printreport){display:none!important}
+#printreport{display:block;padding:0 13mm;font-size:10pt;line-height:1.45;direction:rtl}
+#printreport h1{font-size:16pt;margin:0;line-height:1.3}
+#printreport .pr-top{display:flex;justify-content:space-between;align-items:flex-end;gap:4mm;border-bottom:2px solid #0f766e;padding-bottom:2mm;margin-bottom:3mm}
+#printreport .pr-brand{font-weight:700;color:#0f766e;font-size:11pt;white-space:nowrap}
+#printreport .pr-top>div:first-child{min-width:0}
+#printreport .pr-meta{color:#444;font-size:9.5pt}
+#printreport section{break-inside:avoid;page-break-inside:avoid}
+#printreport h2{font-size:11pt;color:#0f766e;margin:2.5mm 0 1mm;break-after:avoid;page-break-after:avoid}
+#printreport .pr-hero{display:flex;gap:3mm;margin:0 0 2mm}
+#printreport .pr-card{flex:1;border:1px solid #bbb;border-radius:2mm;padding:2mm 3mm;background:#f4f8f9;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#printreport .pr-card.main{flex:1.5;background:#e3f3ef;border-color:#0f766e}
+#printreport .pr-card.main.loss{background:#fdeceb;border-color:#b42318}
+#printreport .pr-card small{display:block;color:#444;font-size:8.5pt}
+#printreport .pr-card b{font-size:13pt}
+#printreport .pr-card.main b{font-size:20pt;color:#0f766e}
+#printreport .pr-card.main.loss b{color:#b42318}
+#printreport .pr-bar{display:flex;height:4mm;border-radius:2mm;overflow:hidden;margin:0 0 2mm;border:1px solid #ccc;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#printreport .pr-bar i{display:block;height:100%}
+#printreport table{width:100%;border-collapse:collapse;break-inside:avoid;page-break-inside:avoid}
+#printreport tr{break-inside:avoid;page-break-inside:avoid}
+#printreport th,#printreport td{border:1px solid #bbb;padding:1.1mm 2mm;text-align:right;font-weight:400}
+#printreport th{background:#eaf2f3;color:#333;width:24%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#printreport td{width:26%}
+#printreport .pr-b th,#printreport .pr-p th{width:auto}
+#printreport table.pr-wrap,#printreport table.pr-wrap>tbody>tr{break-inside:auto;page-break-inside:auto}
+#printreport table.pr-wrap>thead>tr>td,#printreport table.pr-wrap>tbody>tr>td,#printreport table.pr-wrap>tfoot>tr>td{border:0!important;padding:0!important;width:auto!important}
+#printreport .pr-space{height:8mm}
+#printreport .sq{display:inline-block;width:3mm;height:3mm;margin-inline-end:2mm;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#printreport .num{direction:ltr;unicode-bidi:isolate;display:inline-block}
+#printreport .pr-note{font-size:8.5pt;color:#555;margin-top:2.5mm;break-inside:avoid}
+#printreport .pr-foot{display:flex;justify-content:space-between;gap:4mm;font-size:8pt;color:#555;margin-top:2mm;border-top:1px solid #ccc;padding-top:2mm}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+<h1>حاسبة أرباح المتجر الإلكتروني</h1>
+<p class="sub">اعرف صافي ربح كل طلب بعد العمولات ورسوم وسائل الدفع والدفع عند الاستلام والمرتجعات والإعلانات. كل الأرقام بعملتك وتُحسب فوراً.</p>
+<div class="grid">
+<section class="card" aria-label="المدخلات">
+<fieldset><legend>المنتج والسعر</legend>
+<div class="row">
+<label>سعر البيع قبل الخصم<input id="price" type="number" inputmode="decimal" min="0" step="any" value="100"></label>
+<label>تكلفة المنتج عليك<input id="cost" type="number" inputmode="decimal" min="0" step="any" value="40"></label>
+</div>
+<div class="row"><label>نسبة الخصم على السعر %<input id="disc" type="number" inputmode="decimal" min="0" max="100" step="any" value="0"></label><label>اسم المنتج (يظهر في الطباعة)<input id="pname" type="text" maxlength="60" placeholder="اختياري"></label></div>
+<div class="sum" id="discinfo"></div>
+<div class="row"><label>العملة (تظهر في التقرير المطبوع)<select id="cur"><option value="ر.س">ريال سعودي (ر.س)</option><option value="د.إ">درهم إماراتي (د.إ)</option><option value="د.ك">دينار كويتي (د.ك)</option><option value="ر.ق">ريال قطري (ر.ق)</option><option value="د.ب">دينار بحريني (د.ب)</option><option value="ر.ع">ريال عماني (ر.ع)</option><option value="">بدون عملة</option></select></label></div>
+<label class="chk"><input id="vatOn" type="checkbox"> السعر شامل ضريبة القيمة المضافة وأنا مسجل بها</label>
+<label>نسبة الضريبة %<input id="vat" type="number" inputmode="decimal" min="0" step="any" value="15" disabled></label>
+</fieldset>
+<fieldset><legend>الشحن والمنصة</legend>
+<div class="row">
+<label>تكلفة الشحن عليك<input id="ship" type="number" inputmode="decimal" min="0" step="any" value="15"></label>
+<label>عمولة المنصة % (إن وجدت)<input id="comm" type="number" inputmode="decimal" min="0" step="any" value="0"></label>
+<label>باقة سلة (تعبئة التكلفة الشهرية)<select id="plan"><option value="">اختر أو أدخل يدوياً</option><option value="0">Basic مجانية</option><option value="99">Plus شهري 99</option><option value="82.5">Plus سنوي (990 في السنة)</option><option value="299">Pro شهري 299</option><option value="249.17">Pro سنوي (2,990 في السنة)</option></select></label>
+<label>تكاليف ثابتة شهرية (اشتراك المنصة وغيره)<input id="fixedm" type="number" inputmode="decimal" min="0" step="any" value="0"></label>
+<label>عدد الطلبات شهرياً<input id="orders" type="number" inputmode="decimal" min="0" step="1" value="100"></label>
+</div>
+<p class="note" style="margin-top:0">أسعار باقات سلة من صفحة الأسعار الرسمية (لقطات شاشة بتاريخ 1 أكتوبر 2026)، وقد تتغير. السنوي يُقسَّم على 12 شهراً.</p>
+</fieldset>
+<fieldset><legend>وسائل الدفع</legend>
+<div class="pay"><span></span><span>نسبة الطلبات %</span><span>الرسم %</span><span>رسم ثابت</span></div>
+<div class="pay"><b>مدى</b><input id="sh1" type="number" inputmode="decimal" min="0" step="any" value="60" aria-label="نسبة طلبات مدى"><input id="pc1" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم مدى بالنسبة"><input id="fx1" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم مدى الثابت"></div>
+<div class="pay"><b>بطاقات ائتمانية</b><input id="sh2" type="number" inputmode="decimal" min="0" step="any" value="40" aria-label="نسبة طلبات البطاقات"><input id="pc2" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم البطاقات بالنسبة"><input id="fx2" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم البطاقات الثابت"></div>
+<div class="pay"><b>آجل / stc pay</b><input id="sh3" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="نسبة طلبات الدفع الآجل"><input id="pc3" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم الدفع الآجل بالنسبة"><input id="fx3" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم الدفع الآجل الثابت"></div>
+<div class="pay"><b>تحويل بنكي</b><input id="sh4" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="نسبة طلبات التحويل"><input id="pc4" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم التحويل بالنسبة"><input id="fx4" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم التحويل الثابت"></div>
+<div class="pay"><b>عند الاستلام</b><input id="sh5" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="نسبة طلبات الدفع عند الاستلام"><input id="pc5" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم الدفع عند الاستلام بالنسبة"><input id="fx5" type="number" inputmode="decimal" min="0" step="any" value="0" aria-label="رسم الدفع عند الاستلام الثابت"></div>
+<label>ضريبة القيمة المضافة على رسوم الدفع %<input id="feevat" type="number" inputmode="decimal" min="0" step="any" value="15"></label>
+<div class="sum" id="sumw"></div>
+<button type="button" class="sample" id="sample">عبّئ برسوم سلة (مدى والبطاقات)</button>
+<p class="warn">مدى: 1% + 1 ريال (مؤكد في مقال سلة ولقطة لوحة التحكم). البطاقات الائتمانية: مقال يذكر 2% + 1 ولقطة لوحة التحكم تذكر 2.2% + 1، والزر يستخدم 2.2% حتى لا نبالغ في الربح، فتأكد من حاسبة الرسوم في لوحة متجرك. Apple Pay بنفس رسوم البطاقة المستخدمة، فاحسبه ضمن مدى أو البطاقات. الدفع الآجل والدفع عند الاستلام بدون نسبة لأنها تختلف حسب العقد وشركة الشحن. نسب توزيع الطلبات في الزر للتجربة فقط. تاريخ المراجعة: 1 أكتوبر 2026.</p>
+</fieldset>
+<fieldset><legend>المرتجعات والإعلان</legend>
+<div class="row">
+<label>نسبة المرتجعات %<input id="ret" type="number" inputmode="decimal" min="0" max="100" step="any" value="10"></label>
+<label>تكلفة شحن المرتجع عليك<input id="retship" type="number" inputmode="decimal" min="0" step="any" value="15"></label>
+<label>طريقة حساب الإعلان<select id="admode"><option value="order">تكلفة الإعلان لكل طلب</option><option value="budget">من الميزانية الشهرية</option><option value="cpc">من تكلفة النقرة ونسبة التحويل</option></select></label>
+<label id="l_ads">تكلفة الإعلان لكل طلب<input id="ads" type="number" inputmode="decimal" min="0" step="any" value="20"></label>
+<label id="l_budget" hidden>الميزانية الإعلانية الشهرية<input id="adbudget" type="number" inputmode="decimal" min="0" step="any" value="2000"></label>
+<label id="l_cpc" hidden>تكلفة النقرة (CPC)<input id="cpc" type="number" inputmode="decimal" min="0" step="any" value="1"></label>
+<label id="l_conv" hidden>نسبة تحويل الزوار إلى طلبات %<input id="conv" type="number" inputmode="decimal" min="0" step="any" value="5"></label>
+<div class="sum" id="adinfo" style="grid-column:1/-1"></div>
+</div>
+</fieldset>
+</section>
+<section class="card res" aria-live="polite" aria-label="النتائج">
+<p class="state" id="state"></p>
+<div class="big" id="profit"></div>
+<div style="color:var(--muted)">صافي الربح المتوقع لكل طلب</div>
+<div class="kpis">
+<div class="kpi"><span>هامش الربح من سعر البيع</span><b id="margin"></b></div>
+<div class="kpi"><span>الربح الشهري بعد التكاليف الثابتة</span><b id="monthly"></b></div>
+<div class="kpi"><span>طلبات التعادل شهرياً</span><b id="beo"></b></div>
+<div class="kpi"><span>أقصى تكلفة إعلان للطلب</span><b id="cpa"></b></div>
+<div class="kpi"><span><bdi>ROAS</bdi> التعادل</span><b id="roas"></b></div>
+<div class="kpi"><span>أقل سعر بيع بدون خسارة</span><b id="minp"></b></div>
+</div>
+<h2>أين يذهب سعر البيع؟</h2>
+<div class="bar" id="bar" role="img" aria-label="توزيع سعر البيع"></div>
+<ul class="legend" id="legend"></ul>
+<p class="note">الحساب تقديري لكل طلب مشحون. رسوم المنصة والدفع تُحسب على المبلغ الذي يدفعه العميل، وتُضاف ضريبة القيمة المضافة على رسوم الدفع كما تظهر في حاسبة رسوم سلة. يفترض أن المنتج المرتجع يعود للمخزون، وأن العمولة ورسوم الدفع لا تُحتسب على الطلب المرتجع، وأن تكلفة المنتج المدخلة بدون ضريبة. راجع شروط منصتك وشركة الدفع لأن الرسوم تتغير.</p>
+<button type="button" class="sample noprint" id="printbtn">اطبع أو احفظ كـ PDF</button>
+</section>
+</div>
+</main>
+<div id="printreport" aria-hidden="true"></div>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var ids=["price","cost","vatOn","vat","ship","comm","fixedm","orders","ret","retship","ads","feevat","disc","adbudget","cpc","conv","admode","pname","cur"];
+for(var j=1;j<=5;j++){ids.push("sh"+j,"pc"+j,"fx"+j)}
+function n(id){var v=parseFloat($(id).value);return isFinite(v)&&v>0?v:0}
+function f(x){return Number(x).toLocaleString("en-US",{maximumFractionDigits:2,minimumFractionDigits:0})}
+function t(x){return '<span class="num">'+f(x)+'</span>'}
+var last=null;
+function esc(x){return x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function buildReport(){
+if(!last)return;
+var el=$("printreport");if(!el)return;
+var L=last,cur=$("cur")?$("cur").value:"";
+function m(x){return t(x)+(cur?" "+cur:"")}
+var nm=esc($("pname").value.trim());
+var tp=document.title.split(" | "),site=tp.length>1?tp[tp.length-1]:"";
+var d=new Date().toLocaleDateString("en-GB");
+function pairs(r){var h="";for(var i=0;i<r.length;i+=2){h+="<tr><th>"+r[i][0]+"</th><td>"+r[i][1]+"</td>"+(r[i+1]?"<th>"+r[i+1][0]+"</th><td>"+r[i+1][1]+"</td>":"<th></th><td></td>")+"</tr>"}return h}
+var r=[];
+r.push(["سعر البيع"+(L.dsc>0?" قبل الخصم":""),m(n("price"))]);
+if(L.dsc>0){r.push(["نسبة الخصم",t(L.dsc*100)+"%"]);r.push(["السعر بعد الخصم",m(L.P)])}
+r.push(["تكلفة المنتج",m(n("cost"))]);
+r.push(["الشحن على المتجر",m(n("ship"))]);
+if(n("comm")>0)r.push(["عمولة المنصة",t(n("comm"))+"%"]);
+if($("vatOn").checked)r.push(["ضريبة القيمة المضافة","السعر شامل "+t(n("vat"))+"%"]);
+r.push(["نسبة المرتجعات",t(n("ret"))+"%"]);
+if(n("ret")>0)r.push(["شحن المرتجع",m(n("retship"))]);
+r.push(["الإعلان لكل طلب",m(L.A)]);
+if(L.FM>0)r.push(["تكاليف شهرية ثابتة",m(L.FM)]);
+r.push(["عدد الطلبات شهرياً",t(L.N)]);
+var names=["مدى","بطاقات ائتمانية","آجل / stc pay","تحويل بنكي","عند الاستلام"],rows="",i;
+for(i=1;i<=5;i++){if(n("sh"+i)>0)rows+="<tr><td>"+names[i-1]+"</td><td>"+t(n("sh"+i))+"%</td><td>"+t(n("pc"+i))+"%</td><td>"+m(n("fx"+i))+"</td></tr>"}
+var pay=rows?'<section><h2>وسائل الدفع</h2><table class="pr-p"><thead><tr><th>الوسيلة</th><th>نسبة الطلبات</th><th>الرسم %</th><th>رسم ثابت</th></tr></thead><tbody>'+rows+'</tbody></table><p class="pr-note" style="margin-top:1.5mm">ضريبة القيمة المضافة على رسوم الدفع: '+t(n("feevat"))+'%</p></section>':"";
+var loss=L.profit<0,margin=L.P>0?t(L.profit/L.P*100)+"%":"-";
+var hero='<div class="pr-hero"><div class="pr-card main'+(loss?" loss":"")+'"><small>صافي ربح الطلب'+(loss?" (خسارة)":"")+'</small><b>'+m(L.profit)+'</b></div><div class="pr-card"><small>هامش الربح من سعر البيع</small><b>'+margin+'</b></div><div class="pr-card"><small>'+(L.FM>0?"الربح الشهري بعد التكاليف الثابتة":"الربح الشهري المتوقع")+'</small><b>'+m(L.profit*L.N-L.FM)+'</b></div></div>';
+var res=[["أقصى تكلفة إعلان للطلب",L.cpa>0?m(L.cpa):"لا يوجد هامش"],["<bdi>ROAS</bdi> التعادل",L.cpa>0&&L.P>0?t(L.P/L.cpa)+"x":"غير ممكن"],["أقل سعر بيع بدون خسارة",L.minP===null?"غير ممكن بهذه الرسوم":m(L.minP)+(L.dsc>0&&L.dsc<1?" (قبل الخصم: "+m(L.minP/(1-L.dsc))+")":"")]];
+if(L.FM>0)res.push(["طلبات التعادل شهرياً",L.profit>0?t(Math.ceil(L.FM/L.profit)):"غير ممكن"]);
+var tot=0;L.parts.forEach(function(x){tot+=Math.max(x[1],0)});
+var bar=L.parts.map(function(x){var w=tot>0?Math.max(x[1],0)/tot*100:0;return w>0?'<i style="width:'+w+'%;background:var('+x[2]+')"></i>':""}).join("");
+var bh=L.parts.filter(function(x,k){return k===6||Math.abs(x[1])>=0.005}).map(function(x){var pc=L.P>0?x[1]/L.P*100:0;return '<tr><td><span class="sq" style="background:var('+x[2]+')"></span>'+x[0]+'</td><td>'+m(x[1])+'</td><td>'+t(pc)+'%</td></tr>'}).join("");
+var url=(typeof location!=="undefined"&&(location.protocol==="http:"||location.protocol==="https:"))?location.host+location.pathname.replace(/index\.html$/,""):"";
+el.innerHTML='<table class="pr-wrap"><thead><tr><td><div class="pr-space"></div></td></tr></thead><tbody><tr><td>'
++'<div class="pr-top"><div><h1>تقرير ربحية'+(nm?": "+nm:"")+'</h1><div class="pr-meta">'+d+'</div></div><div class="pr-brand">'+site+'</div></div>'
++'<section><h2>النتائج</h2>'+hero+'<table>'+pairs(res)+'</table></section>'
++'<section><h2>ملخص المدخلات</h2><table>'+pairs(r)+'</table></section>'+pay
++'<section><h2>أين يذهب سعر البيع؟</h2><div class="pr-bar">'+bar+'</div><table class="pr-b"><thead><tr><th>البند</th><th>المبلغ</th><th>من السعر</th></tr></thead><tbody>'+bh+'</tbody></table></section>'
++'<div class="pr-foot"><span>'+(url?'للعودة إلى الحاسبة: <span class="num">'+esc(url)+'</span>':'')+'</span><span>تقدير لكل طلب مشحون (المرتجع يعود للمخزون ولا تُحتسب عليه رسوم الدفع). ليست نصيحة مالية، وراجع رسوم منصتك لأنها تتغير.</span></div>'
++'</td></tr></tbody><tfoot><tr><td><div class="pr-space"></div></td></tr></tfoot></table>';
+}
+function calc(){
+var P0=n("price"),dsc=Math.min(n("disc"),100)/100,P=P0*(1-dsc),C=n("cost"),S=n("ship"),c=n("comm")/100,p=Math.min(n("ret"),100)/100,rs=n("retship"),N=n("orders"),FM=n("fixedm");
+var am=$("admode").value;
+$("l_ads").hidden=am!=="order";$("l_budget").hidden=am!=="budget";$("l_cpc").hidden=am!=="cpc";$("l_conv").hidden=am!=="cpc";
+var A=am==="budget"?(N>0?n("adbudget")/N:0):am==="cpc"?(n("conv")>0?n("cpc")/(n("conv")/100):0):n("ads");
+$("adinfo").innerHTML=am==="order"?"":"تكلفة الإعلان المحسوبة لكل طلب: "+t(A);
+$("discinfo").innerHTML=dsc>0?"السعر بعد الخصم: "+t(P):"";
+var incl=$("vatOn").checked,v=n("vat")/100;
+$("vat").disabled=!incl;
+var R=incl?P/(1+v):P;
+var T=0,i;
+for(i=1;i<=5;i++)T+=n("sh"+i);
+var qp=0,F=0;
+for(i=1;i<=5;i++){var w=T>0?n("sh"+i)/T:0;qp+=w*n("pc"+i)/100;F+=w*n("fx"+i)}
+var sw=$("sumw");
+sw.className="sum"+(Math.abs(T-100)>0.01?" bad":"");
+sw.innerHTML="مجموع نسب وسائل الدفع: "+t(T)+"%"+(Math.abs(T-100)>0.01?" (سيُحسب بالتناسب)":"");
+var vf=1+n("feevat")/100;
+var vatAmt=(1-p)*(P-R),prod=(1-p)*C,shipT=S+p*rs,comm=(1-p)*c*P,payT=(1-p)*(qp*P+F)*vf,retLoss=p*P;
+var profit=P-retLoss-vatAmt-prod-shipT-comm-payT-A;
+var cpa=profit+A;
+var k=(1-p)*((incl?1/(1+v):1)-c-qp*vf);
+var cst=(1-p)*(C+F*vf)+S+p*rs+A;
+var minP=k>0?cst/k:null;
+var loss=profit<0;
+$("profit").className="big "+(loss?"loss":"ok");
+$("profit").innerHTML=t(profit);
+$("state").textContent=loss?"خسارة: كل طلب يكلفك أكثر مما يدخل":"ربح: الطلب مربح بهذه الأرقام";
+$("margin").innerHTML=P>0?t(profit/P*100)+"%":"-";
+$("monthly").innerHTML=t(profit*N-FM);
+$("beo").innerHTML=FM===0?t(0):(profit>0?t(Math.ceil(FM/profit)):"غير ممكن");
+$("cpa").innerHTML=cpa>0?t(cpa):"لا يوجد هامش";
+$("roas").innerHTML=cpa>0&&P>0?t(P/cpa)+"x":"غير ممكن";
+$("minp").innerHTML=minP===null?"غير ممكن بهذه الرسوم":t(minP)+(dsc>0&&dsc<1?'<span style="display:block;font-size:.8rem;font-weight:400;color:var(--muted)">قبل الخصم: '+t(minP/(1-dsc))+"</span>":"");
+var parts=[["تكلفة المنتج",prod,"--c1"],["الشحن",shipT,"--c2"],["العمولة والرسوم",comm+payT,"--c3"],["المرتجعات",retLoss,"--c4"],["الضريبة",vatAmt,"--c5"],["الإعلان",A,"--c6"],["صافي الربح",Math.max(profit,0),"--c7"]];
+var total=parts.reduce(function(a,x){return a+x[1]},0);
+var bar="",lg="";
+parts.forEach(function(x){
+var w=total>0?x[1]/total*100:0;
+if(w>0)bar+='<i style="width:'+w+'%;background:var('+x[2]+')"></i>';
+lg+='<li><span class="dot" style="background:var('+x[2]+')"></span>'+x[0]+'<span class="v">'+t(x[1])+'</span></li>';
+});
+$("bar").innerHTML=bar;$("legend").innerHTML=lg;
+last={A:A,P:P,profit:profit,cpa:cpa,minP:minP,dsc:dsc,N:N,FM:FM,parts:parts.slice(0,6).concat([["صافي الربح",profit,"--c7"]])};
+buildReport();
+}
+ids.forEach(function(id){$(id).addEventListener("input",calc);$(id).addEventListener("change",calc)});
+$("plan").addEventListener("change",function(){if(this.value!==""){$("fixedm").value=this.value;calc()}});
+$("fixedm").addEventListener("input",function(){$("plan").value=""});
+$("sample").addEventListener("click",function(){
+var d={sh1:55,pc1:1,fx1:1,sh2:40,pc2:2.2,fx2:1,sh3:0,pc3:0,fx3:0,sh4:0,pc4:0,fx4:0,sh5:5,pc5:0,fx5:0};
+for(var key in d){$(key).value=d[key]}
+calc();
+});
+$("printbtn").addEventListener("click",function(){window.print()});
+calc();
+})();
+</script>
+</body>
+</html>

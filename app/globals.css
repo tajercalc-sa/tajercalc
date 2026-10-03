@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+/* Design tokens.
+   Theme = data-theme on <html>, set before first paint by the inline script in app/layout.tsx
+   (user choice in localStorage, else the OS setting). The media block is the no-JS fallback. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --color-bg: #eef1ec;        /* sage-grey desk */
+  --color-surface: #ffffff;   /* form panel */
+  --color-paper: #ffffff;     /* receipt */
+  --color-ink: #1d2a33;
+  --color-muted: #5d6b72;
+  --color-line: #d5dcd6;
+  --color-accent: #0b6e4f;    /* emerald: profit, primary actions */
+  --color-loss: #c0392b;
+  --color-warn: #8a5a00;
+  --color-saffron: #e3b23c;   /* "this changed" highlight */
+}
+
+:root {
+  /* chart categorical slots, light steps (validated vs #ffffff: CVD ΔE ≥ 9.1; 3 slots < 3:1 → every value is also written in the receipt) */
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+    --color-bg: #10181b;
+    --color-surface: #172227;
+    --color-paper: #1c2a30;
+    --color-ink: #e6eeeb;
+    --color-muted: #9fb0b1;
+    --color-line: #2b3b40;
+    --color-accent: #3fcf9b;
+    --color-loss: #f2766b;
+    --color-warn: #f0b849;
+    --color-saffron: #e3b23c;
+    /* chart categorical slots, dark steps (validated vs #172227: CVD ΔE ≥ 8.4, contrast ≥ 3:1) */
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9;
+    color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-bg: #10181b;
+    --color-surface: #172227;
+    --color-paper: #1c2a30;
+    --color-ink: #e6eeeb;
+    --color-muted: #9fb0b1;
+    --color-line: #2b3b40;
+    --color-accent: #3fcf9b;
+    --color-loss: #f2766b;
+    --color-warn: #f0b849;
+    --color-saffron: #e3b23c;
+    /* chart categorical slots, dark steps (validated vs #172227: CVD ΔE ≥ 8.4, contrast ≥ 3:1) */
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9;
+    color-scheme: dark;
+  }
+}
+
+/* Theme switch: colours cross-fade only during the switch (class added for 300ms by ThemeToggle) */
+html.theme-fade, html.theme-fade * { transition: background-color .3s ease, border-color .3s ease, color .3s ease, fill .3s ease !important; }
+
+@layer base {
+  html {
+    /* iOS: stop Safari inflating text in landscape */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    /* last line of defence against horizontal scroll on iOS Safari */
+    overflow-x: clip;
+  }
+  /* Hide number spinners: they steal width on small screens */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+}
+
+/* Receipt: paper with a torn zig-zag bottom edge (the page's one bold element) */
+.receipt { position: relative; background: var(--color-paper); filter: drop-shadow(0 0 1px var(--color-line)) drop-shadow(0 6px 14px rgb(0 0 0 / 0.06)); }
+.receipt::after {
+  content: ""; position: absolute; inset-inline: 0; bottom: -9px; height: 10px;
+  background:
+    linear-gradient(135deg, var(--color-paper) 50%, transparent 50%) 0 0 / 14px 10px repeat-x,
+    linear-gradient(225deg, var(--color-paper) 50%, transparent 50%) 0 0 / 14px 10px repeat-x;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Answer to a user action: fields changed by a button glow saffron once */
+@keyframes changed { from { box-shadow: 0 0 0 3px var(--color-saffron); background: color-mix(in oklab, var(--color-saffron) 22%, var(--color-bg)); } to { box-shadow: 0 0 0 0 transparent; } }
+.just-changed { animation: changed 1.4s ease-out; }
+@media (prefers-reduced-motion: reduce) { .just-changed { animation: none; outline: 2px solid var(--color-saffron); } }
+
+/* ───── motion: every animation answers a user action and respects reduced motion ───── */
+@keyframes pulse-value { 0% { background: color-mix(in oklab, var(--color-saffron) 35%, transparent); } 100% { background: transparent; } }
+.value-pulse { animation: pulse-value .9s ease-out; border-radius: 6px; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(8px) scale(.98); } }
+.toast-in { animation: toast-in .22s cubic-bezier(.2,.8,.2,1) both; }
+.toast-out { animation: toast-out .18s ease-in both; }
+@keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.toast-timer { transform-origin: right; animation: toast-timer linear forwards; }
+.toast-paused .toast-timer { animation-play-state: paused; }
+@keyframes pop-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.pop-in { animation: pop-in .2s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes skeleton { 0%,100% { opacity: .55; } 50% { opacity: .9; } }
+.skeleton { animation: skeleton 1.4s ease-in-out infinite; background: var(--color-line); }
+@media (prefers-reduced-motion: reduce) {
+  .value-pulse, .toast-in, .toast-out, .skeleton, .pop-in { animation-duration: 1ms !important; }
+  .toast-timer { animation: none; }
+  html.theme-fade, html.theme-fade * { transition: none !important; }
+}
+
+/* Numbers inside RTL text: isolate so "15.04 ر.س" and "-3.2" never flip */
+.num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+/* Long-form article pages */
+.prose-ar { line-height: 1.85; }
+.prose-ar h1 { font-size: 1.7rem; line-height: 1.4; font-weight: 700; margin: 0.2em 0 0.5em; }
+.prose-ar h2 { font-size: 1.25rem; font-weight: 700; margin: 1.6em 0 0.4em; }
+.prose-ar h3 { font-size: 1.05rem; font-weight: 700; margin: 1.2em 0 0.2em; }
+.prose-ar p, .prose-ar li { max-width: 68ch; margin-block: 0.5em; }
+.prose-ar ul { list-style: disc; padding-inline-start: 1.4em; }
+.prose-ar ol { list-style: decimal; padding-inline-start: 1.4em; }
+.prose-ar a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose-ar .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.prose-ar table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.95rem; }
+.prose-ar th, .prose-ar td { border: 1px solid var(--color-line); padding: 8px 10px; text-align: right; }
+.prose-ar th { background: var(--color-surface); }
+.prose-ar .callout {
+  border: 1px solid var(--color-line); border-inline-start: 4px solid var(--color-accent);
+  background: var(--color-surface); padding: 12px 14px; border-radius: 8px; margin: 16px 0;
+}
+
+/* ───────────── Print report ─────────────
+   Block layout only (no CSS grid: RTL grid + page breaks is unreliable across browsers).
+   Colour forced ONLY on the result cards, the bar and the legend squares, to save ink. */
+#print-report { display: none; }
+
+@page { size: A4; margin: 0; }
+
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  body > :not(#print-report) { display: none !important; }
+  #print-report { display: block; padding: 0 13mm; font-size: 10pt; line-height: 1.45; direction: rtl; color: #111; }
+  #print-report h1 { font-size: 16pt; margin: 0; line-height: 1.3; }
+  #print-report .pr-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 4mm; border-bottom: 2px solid #0f766e; padding-bottom: 2mm; margin-bottom: 3mm; }
+  #print-report .pr-top > div:first-child { min-width: 0; }
+  #print-report .pr-brand { font-weight: 700; color: #0f766e; font-size: 11pt; white-space: nowrap; }
+  #print-report .pr-meta { color: #444; font-size: 9.5pt; }
+  #print-report section { break-inside: avoid; page-break-inside: avoid; }
+  #print-report h2 { font-size: 11pt; color: #0f766e; margin: 2.5mm 0 1mm; break-after: avoid; page-break-after: avoid; }
+  #print-report .pr-hero { display: flex; gap: 3mm; margin: 0 0 2mm; }
+  #print-report .pr-card { flex: 1; border: 1px solid #bbb; border-radius: 2mm; padding: 2mm 3mm; background: #f4f8f9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-report .pr-card.main { flex: 1.5; background: #e3f3ef; border-color: #0f766e; }
+  #print-report .pr-card.main.loss { background: #fdeceb; border-color: #b42318; }
+  #print-report .pr-card small { display: block; color: #444; font-size: 8.5pt; }
+  #print-report .pr-card b { font-size: 13pt; }
+  #print-report .pr-card.main b { font-size: 20pt; color: #0f766e; }
+  #print-report .pr-card.main.loss b { color: #b42318; }
+  #print-report .pr-bar { display: flex; height: 4mm; border-radius: 2mm; overflow: hidden; margin: 0 0 2mm; border: 1px solid #ccc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-report .pr-bar i { display: block; height: 100%; }
+  #print-report table { width: 100%; border-collapse: collapse; break-inside: avoid; page-break-inside: avoid; }
+  #print-report tr { break-inside: avoid; page-break-inside: avoid; }
+  #print-report th, #print-report td { border: 1px solid #bbb; padding: 1.1mm 2mm; text-align: right; font-weight: 400; }
+  #print-report th { background: #eaf2f3; color: #333; width: 24%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-report td { width: 26%; }
+  #print-report .pr-b th, #print-report .pr-p th { width: auto; }
+  /* repeating top/bottom spacer = margins on every page even with @page margin 0 (which hides browser URL/date headers) */
+  #print-report table.pr-wrap, #print-report table.pr-wrap > tbody > tr { break-inside: auto; page-break-inside: auto; }
+  #print-report table.pr-wrap > thead > tr > td, #print-report table.pr-wrap > tbody > tr > td, #print-report table.pr-wrap > tfoot > tr > td { border: 0 !important; padding: 0 !important; width: auto !important; }
+  #print-report .pr-space { height: 8mm; }
+  /* light-mode bar colours on paper, even if the screen is dark */
+  #print-report { --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; }
+  #print-report .sq { display: inline-block; width: 3mm; height: 3mm; margin-inline-end: 2mm; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-report tr.pr-net td { font-weight: 700; border-top: 2px solid #0f766e; }
+  #print-report tr.pr-net td:first-child { color: #0f766e; }
+  #print-report .pr-note { font-size: 8.5pt; color: #555; margin-top: 1.5mm; }
+  #print-report .pr-foot { display: flex; justify-content: space-between; gap: 4mm; font-size: 8pt; color: #555; margin-top: 2mm; border-top: 1px solid #ccc; padding-top: 2mm; }
+}
