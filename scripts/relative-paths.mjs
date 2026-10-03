@@ -11,6 +11,8 @@ const walk = (d) => readdirSync(d).flatMap((f) => {
   return statSync(p).isDirectory() ? (f === "_next" ? [] : walk(p)) : p.endsWith(".html") ? [p] : [];
 });
 
+const FILE_LINKS = `location.protocol==="file:"&&document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[href]");if(!a)return;var h=a.getAttribute("href");if(/^\\.{1,2}\\/(?:[a-z0-9-]+\\/)*$/.test(h)){e.preventDefault();location.href=a.href+"index.html"}},true);`;
+
 let files = 0, links = 0;
 for (const file of walk(OUT)) {
   const depth = relative(OUT, file).split(sep).length - 1;
@@ -21,8 +23,11 @@ for (const file of walk(OUT)) {
   // Turbopack matches chunks by their literal src string, so this rewrite would break its hydration;
   // that is why `npm run build` uses `next build --webpack`.
   s = s.replace(/(\s(?:src|href)=")\/_next\//g, `$1${pre}_next/`).replace(/\\"\/_next\//g, `\\"${pre}_next/`);
-  // internal page links: href="/" and href="/slug/" → explicit index.html (needed for file://)
-  s = s.replace(/href="\/((?:[a-z0-9-]+\/)*)"/g, (_, path) => { links++; return `href="${pre}${path}index.html"`; });
+  // internal page links: href="/" and href="/slug/" → clean relative folder links ("./", "../slug/").
+  // Servers resolve folders to index.html, so the address bar stays clean (tajercalc.com/guide-profit/).
+  s = s.replace(/href="\/((?:[a-z0-9-]+\/)*)"/g, (_, path) => { links++; return `href="${pre}${path}"`; });
+  // file:// cannot resolve a folder to its index.html, so only there append it on click.
+  s = s.replace("</head>", `<script>${FILE_LINKS}</script></head>`);
   // favicon / other root files referenced as href="/x.ext"
   s = s.replace(/href="\/([a-z0-9-]+\.(?:ico|png|svg|txt|xml|webmanifest)(?:\?[^"]*)?)"/g, `href="${pre}$1"`);
   writeFileSync(file, s);
