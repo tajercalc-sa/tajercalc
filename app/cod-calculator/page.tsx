@@ -19,6 +19,7 @@ export default function Page() {
       intro="في الدفع عند الاستلام، مو كل طلب يجيك يتأكد، ومو كل طلب يُشحن يُستلم. الحاسبة معبأة بتأكيد 75% ومرتجعات 20%، غيّرها لأرقام متجرك وشوف ربحك الحقيقي."
       preset={{
         storageKey: "cod",
+        open: ["ads"],
         chartVar: "ret",
         inputs: {
           confirm: "75",

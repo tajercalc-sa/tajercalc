@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   calculate, fmt, num, priceForTarget, CURRENCIES, DEFAULT_INPUTS, PAYMENT_METHODS,
@@ -58,13 +58,42 @@ function Field({ label, hint, className, ...rest }: {
   );
 }
 
-function Group({ title, children, note }: { title: string; children: React.ReactNode; note?: React.ReactNode }) {
+/**
+ * Optional details, collapsed by default so a phone shows the basics and the result first.
+ * Closed: one summary line of the current values. The panel animates via grid rows and is `inert`
+ * while closed, so hidden inputs stay out of the tab order.
+ */
+function Section({ title, summary, open, onToggle, note, children }: {
+  title: string; summary: string; open: boolean; onToggle: () => void; note?: React.ReactNode; children: React.ReactNode;
+}) {
+  const id = useId();
   return (
-    <fieldset className="min-w-0 border-0 border-t border-line px-0 pb-5 pt-4 first:border-t-0 first:pt-0">
-      <legend className="float-right mb-3 w-full text-base font-bold text-ink">{title}</legend>
-      <div className="clear-both">{children}</div>
-      {note && <div className="mt-2 text-xs leading-relaxed text-muted">{note}</div>}
-    </fieldset>
+    <div className="rounded-2xl bg-surface">
+      <h2 className="m-0 text-base">
+        <button type="button" aria-expanded={open} aria-controls={id} onClick={onToggle}
+          className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-start transition-colors duration-200 hover:bg-ink/[.03]
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:px-6">
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold text-ink">{title}</span>
+            <span className={`line-clamp-2 text-sm font-normal text-muted ${open ? "hidden" : ""}`}>{summary}</span>
+          </span>
+          <svg viewBox="0 0 20 20" aria-hidden
+            className={`size-5 shrink-0 fill-none stroke-muted stroke-2 transition-transform duration-300 motion-reduce:transition-none [stroke-linecap:round] [stroke-linejoin:round] ${open ? "rotate-180" : ""}`}>
+            <path d="M5 8l5 5 5-5" />
+          </svg>
+        </button>
+      </h2>
+      <div id={id} role="region" aria-label={title} inert={!open}
+        className="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none"
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="px-4 pb-5 pt-1 sm:px-6">
+            {children}
+            {note && <p className="mt-3 text-xs leading-relaxed text-muted">{note}</p>}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -76,6 +105,8 @@ const Money = ({ v, cur, sign }: { v: number; cur: string; sign?: boolean }) => 
 
 /* ───────── calculator ───────── */
 
+export type SectionKey = "payments" | "platform" | "ads" | "extras";
+
 export type CalculatorPreset = {
   /** inputs that differ from the general defaults; also what "reset" returns to on this page */
   inputs?: Partial<Inputs>;
@@ -83,6 +114,8 @@ export type CalculatorPreset = {
   target?: Target;
   /** which variable the sensitivity chart opens on */
   chartVar?: Var;
+  /** detail sections that start open on this page (e.g. "ads" on the COD page) */
+  open?: SectionKey[];
   /** separate saved copy per page ("" = the home calculator) */
   storageKey?: string;
 };
@@ -112,6 +145,9 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const [mounted, setMounted] = useState(false);
   const [receiptVisible, setReceiptVisible] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [openSec, setOpenSec] = useState<Partial<Record<SectionKey, boolean>>>(
+    () => Object.fromEntries((preset.open ?? []).map((k) => [k, true])));
+  const toggle = (k: SectionKey) => setOpenSec((o) => ({ ...o, [k]: !o[k] }));
   useEffect(() => setMounted(true), []);
 
   // Mobile sticky bar hides while the receipt itself is on screen.
@@ -243,6 +279,35 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const costs = res.parts.filter((p) => p.key !== "c7");
   const FM = num(inp.fixedMonthly);
 
+  /* one-line summaries shown on the closed sections */
+  const shareSum = inp.payments.reduce((t, r) => t + num(r.share), 0);
+  const P = res.priceAfterDiscount;
+  const feePerOrder = shareSum > 0
+    ? inp.payments.reduce((t, r) => t + (num(r.share) / shareSum) * ((num(r.pct) / 100) * P + num(r.fixed)), 0) * (1 + num(inp.feeVat) / 100)
+    : 0;
+  const usedMethods = PAYMENT_METHODS.map((m, i) => ({ m, sh: num(inp.payments[i].share) })).filter((x) => x.sh > 0)
+    .map((x) => `${x.m} ${fmt(x.sh)}%`).join("، ");
+  const curShort = cur || "";
+  const paySummary = feePerOrder > 0.005
+    ? `رسوم الدفع حوالي ${fmt(feePerOrder)} ${curShort} للطلب · ${usedMethods}`
+    : `بدون رسوم دفع حالياً، افتح لتعبئة رسوم ${platform.name}`;
+  const planLabel = platform.plans.find((p) => p.value === plan)?.label;
+  const platSummary = [
+    planLabel ? `باقة ${platform.name}: ${planLabel}` : FM > 0 ? `تكاليف ثابتة ${fmt(FM)} ${curShort} شهرياً` : "بدون اشتراك أو تكاليف ثابتة",
+    num(inp.comm) > 0 ? `عمولة ${fmt(num(inp.comm))}%` : "",
+  ].filter(Boolean).join(" · ");
+  const adModeLabel = { order: "لكل طلب", budget: "من الميزانية الشهرية", cpc: "من تكلفة النقرة" }[inp.adMode];
+  const adsSummary = [
+    num(inp.confirm) > 0 && num(inp.confirm) < 100 ? `تأكيد ${fmt(num(inp.confirm))}%` : "بدون خطوة تأكيد",
+    `شحن المرتجع ${fmt(num(inp.retShip))} ${curShort}`,
+    `الإعلان ${adModeLabel}`,
+  ].join(" · ");
+  const extrasSummary = [
+    res.discount > 0 ? `خصم ${fmt(res.discount * 100)}%` : "بدون خصم",
+    inp.vatOn ? `السعر شامل ضريبة ${fmt(num(inp.vat))}%` : "بدون ضريبة مبيعات",
+    CURRENCIES.find((c) => c.symbol === cur)?.label ?? "",
+  ].filter(Boolean).join(" · ");
+
   const adModes: { v: AdMode; label: string }[] = [
     { v: "order", label: "لكل طلب" },
     { v: "budget", label: "ميزانية شهرية" },
@@ -253,51 +318,34 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
     <>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
         {/* ───── inputs ───── */}
-        <section aria-label="المدخلات" className="min-w-0 rounded-2xl bg-surface p-4 sm:p-6">
-          <Group title="المنتج والسعر">
-            <div className="grid grid-cols-2 items-end gap-3">
+        <section aria-label="المدخلات" className="min-w-0 space-y-3">
+          {/* the five numbers every merchant knows; everything else has sensible defaults below */}
+          <fieldset className="min-w-0 rounded-2xl border-0 bg-surface p-4 sm:p-6">
+            <legend className="float-right mb-3 w-full text-base font-bold text-ink">أرقامك الأساسية</legend>
+            <div className="clear-both grid grid-cols-2 items-end gap-3">
               <Field label="سعر البيع" suffix={cur} value={inp.price} onChange={(v) => set("price", v)} />
               <Field label="تكلفة المنتج عليك" suffix={cur} value={inp.cost} onChange={(v) => set("cost", v)} />
-              <Field label="خصم على السعر" suffix="%" value={inp.disc} onChange={(v) => set("disc", v)}
-                hint={res.discount > 0 ? `بعد الخصم: ${fmt(res.priceAfterDiscount)} ${cur}` : undefined} />
-              <label className="block min-w-0 text-sm text-muted">
-                العملة
-                <select value={cur} onChange={(e) => setCur(e.target.value)} className={`${box} mt-1 px-3 py-2.5`}>
-                  {CURRENCIES.map((c) => <option key={c.code || "none"} value={c.symbol}>{c.label}</option>)}
-                </select>
-              </label>
-            </div>
-            <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 text-ink">
-              <span className="min-w-0">السعر شامل ضريبة القيمة المضافة وأنا مسجل بها</span>
-              <input type="checkbox" role="switch" checked={inp.vatOn} onChange={(e) => set("vatOn", e.target.checked)}
-                aria-label="السعر شامل ضريبة القيمة المضافة وأنا مسجل بها"
-                className="peer relative h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition-colors
-                  before:absolute before:top-0.5 before:right-0.5 before:size-5 before:rounded-full before:bg-white before:shadow before:transition-transform
-                  checked:bg-accent checked:before:-translate-x-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" />
-            </label>
-            {inp.vatOn && <Field className="mt-3 max-w-[50%]" label="نسبة الضريبة" suffix="%" value={inp.vat} onChange={(v) => set("vat", v)} />}
-          </Group>
-
-          <Group title="الشحن والمنصة"
-            note={platform.plansNote}>
-            <div className="grid grid-cols-2 items-end gap-3">
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
-              <Field label="عمولة المنصة" suffix="%" value={inp.comm} onChange={(v) => set("comm", v)} />
-              {platform.plans.length > 0 && <label className="col-span-2 block min-w-0 text-sm text-muted">
-                باقة {platform.name}
-                <select value={plan} className={`${box} mt-1 px-3 py-2.5`}
-                  onChange={(e) => { setPlan(e.target.value); if (e.target.value !== "") set("fixedMonthly", e.target.value); }}>
-                  <option value="">لا أستخدم {platform.name}، أو سأدخل التكلفة يدوياً</option>
-                  {platform.plans.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-              </label>}
-              <Field label="تكاليف ثابتة شهرية" suffix={cur} value={inp.fixedMonthly}
-                onChange={(v) => { setPlan(""); set("fixedMonthly", v); }} />
-              <Field label="الطلبات المشحونة في الشهر" step="1" value={inp.orders} onChange={(v) => set("orders", v)} />
+              {inp.adMode === "order" && <Field label={num(inp.confirm) > 0 && num(inp.confirm) < 100 ? "الإعلان لكل طلب قبل التأكيد" : "تكلفة الإعلان لكل طلب"}
+                suffix={cur} value={inp.ads} onChange={(v) => set("ads", v)} />}
+              {inp.adMode === "budget" && <Field label="ميزانية الإعلان الشهرية" suffix={cur} value={inp.adBudget} onChange={(v) => set("adBudget", v)} />}
+              {inp.adMode === "cpc" && <Field label="تكلفة النقرة" suffix={cur} value={inp.cpc} onChange={(v) => set("cpc", v)} />}
+              {retAs === "ret" ? (
+                <Field label="نسبة المرتجعات" suffix="%" value={inp.ret} onChange={(v) => set("ret", v)} />
+              ) : (
+                <Field label="نسبة التوصيل" suffix="%"
+                  value={inp.ret.trim() === "" ? "" : String(+(100 - Math.min(num(inp.ret), 100)).toFixed(2))}
+                  onChange={(v) => set("ret", v.trim() === "" ? "" : String(+(100 - Math.min(Math.max(parseFloat(v) || 0, 0), 100)).toFixed(2)))} />
+              )}
+              {inp.adMode === "cpc"
+                ? <Field label="نسبة التحويل" suffix="%" value={inp.conv} onChange={(v) => set("conv", v)} />
+                : <Field label="الطلبات المشحونة في الشهر" step="1" value={inp.orders} onChange={(v) => set("orders", v)} />}
             </div>
-          </Group>
+          </fieldset>
 
-          <Group title="وسائل الدفع" note={platform.feesNote}>
+          <p className="px-1 pt-2 text-sm text-muted">تفاصيل إضافية لنتيجة أدق. اتركها إن ما تعرفها، والحاسبة تستخدم قيماً منطقية:</p>
+
+          <Section title="رسوم الدفع" summary={paySummary} open={!!openSec.payments} onToggle={() => toggle("payments")} note={platform.feesNote}>
             <div className="grid grid-cols-3 gap-x-2 gap-y-1 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] sm:items-end">
               <span className="hidden sm:block" />
               <span className="text-xs text-muted">من الطلبات</span>
@@ -340,35 +388,27 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
               </span>
             </div>
             <Field className="mt-4 max-w-[50%]" label="ضريبة على رسوم الدفع" suffix="%" value={inp.feeVat} onChange={(v) => set("feeVat", v)} />
-          </Group>
+          </Section>
 
-          <Group title="التأكيد والتوصيل والإعلان">
-            <Field label="نسبة التأكيد" suffix="%" value={inp.confirm} onChange={(v) => set("confirm", v)}
-              hint="من كل الطلبات اللي تجيك، كم واحد يؤكد وتشحن له. اتركها 100 إذا ما عندك خطوة تأكيد." />
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-sm text-muted">بعد الشحن، أعرف</span>
-              <div role="radiogroup" aria-label="أكتب نسبة المرتجعات أو نسبة التوصيل" className="grid grid-cols-2 gap-1 rounded-lg bg-bg p-1">
-                {([["ret", "المرتجعات"], ["delivery", "التوصيل"]] as const).map(([k, l]) => (
-                  <button key={k} type="button" role="radio" aria-checked={retAs === k} onClick={() => setRetAs(k)}
-                    className={`rounded-md px-3 py-1.5 text-sm transition duration-200 ease-out active:scale-95 focus-visible:outline-2 focus-visible:outline-accent
-                      ${retAs === k ? "bg-surface font-medium text-ink shadow-sm" : "text-muted hover:bg-surface/60 hover:text-ink"}`}>{l}</button>
-                ))}
-              </div>
+          <Section title="المنصة والاشتراك الشهري" summary={platSummary} open={!!openSec.platform} onToggle={() => toggle("platform")} note={platform.plansNote}>
+            <div className="grid grid-cols-2 items-end gap-3">
+              {platform.plans.length > 0 && <label className="col-span-2 block min-w-0 text-sm text-muted">
+                باقة {platform.name}
+                <select value={plan} className={`${box} mt-1 px-3 py-2.5`}
+                  onChange={(e) => { setPlan(e.target.value); if (e.target.value !== "") set("fixedMonthly", e.target.value); }}>
+                  <option value="">لا أستخدم {platform.name}، أو سأدخل التكلفة يدوياً</option>
+                  {platform.plans.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </label>}
+              <Field label="تكاليف ثابتة شهرية" suffix={cur} value={inp.fixedMonthly}
+                onChange={(v) => { setPlan(""); set("fixedMonthly", v); }} />
+              <Field label="عمولة المنصة" suffix="%" value={inp.comm} onChange={(v) => set("comm", v)} />
+              {inp.adMode === "cpc" && <Field label="الطلبات المشحونة في الشهر" step="1" value={inp.orders} onChange={(v) => set("orders", v)} />}
             </div>
-            <div className="mt-2 grid grid-cols-2 items-end gap-3">
-              {retAs === "ret" ? (
-                <Field label="نسبة المرتجعات" suffix="%" value={inp.ret} onChange={(v) => set("ret", v)}
-                  hint={inp.ret.trim() !== "" ? `يعني توصيل ${fmt(100 - Math.min(num(inp.ret), 100))}%` : undefined} />
-              ) : (
-                <Field label="نسبة التوصيل" suffix="%"
-                  value={inp.ret.trim() === "" ? "" : String(+(100 - Math.min(num(inp.ret), 100)).toFixed(2))}
-                  onChange={(v) => set("ret", v.trim() === "" ? "" : String(+(100 - Math.min(Math.max(parseFloat(v) || 0, 0), 100)).toFixed(2)))}
-                  hint={`يعني مرتجعات ${fmt(Math.min(num(inp.ret), 100))}%`} />
-              )}
-              <Field label="شحن المرتجع عليك" suffix={cur} value={inp.retShip} onChange={(v) => set("retShip", v)}
-                hint={retAs === "delivery" || inp.ret.trim() !== "" ? "\u00a0" : undefined} />
-            </div>
-            <div role="radiogroup" aria-label="طريقة حساب الإعلان" className="mt-4">
+          </Section>
+
+          <Section title="الإعلان والتأكيد والمرتجعات" summary={adsSummary} open={!!openSec.ads} onToggle={() => toggle("ads")}>
+            <div role="radiogroup" aria-label="طريقة حساب الإعلان">
               <span className="text-sm text-muted">تكلفة الإعلان أعرفها</span>
               <div className="mt-1 grid grid-cols-3 gap-1 rounded-lg bg-bg p-1">
                 {adModes.map((m) => (
@@ -380,25 +420,53 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
                   </button>
                 ))}
               </div>
+              <p className="mt-1 text-xs text-muted">تكتب الرقم نفسه في "أرقامك الأساسية" فوق.</p>
             </div>
-            <div className="mt-3 grid grid-cols-2 items-end gap-3">
-              {inp.adMode === "order" && <Field label={num(inp.confirm) > 0 && num(inp.confirm) < 100 ? "تكلفة الإعلان لكل طلب قبل التأكيد" : "تكلفة الإعلان لكل طلب"}
-                suffix={cur} value={inp.ads} onChange={(v) => set("ads", v)} />}
-              {inp.adMode === "budget" && <Field label="الميزانية الإعلانية الشهرية" suffix={cur} value={inp.adBudget} onChange={(v) => set("adBudget", v)} />}
-              {inp.adMode === "cpc" && (
-                <>
-                  <Field label="تكلفة النقرة" suffix={cur} value={inp.cpc} onChange={(v) => set("cpc", v)} />
-                  <Field label="نسبة التحويل" suffix="%" value={inp.conv} onChange={(v) => set("conv", v)} />
-                </>
-              )}
+            <Field className="mt-4" label="نسبة التأكيد" suffix="%" value={inp.confirm} onChange={(v) => set("confirm", v)}
+              hint="من كل الطلبات اللي تجيك، كم واحد يؤكد وتشحن له. اتركها 100 إذا ما عندك خطوة تأكيد." />
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span className="text-sm text-muted">بعد الشحن، أعرف نسبة</span>
+              <div role="radiogroup" aria-label="أكتب نسبة المرتجعات أو نسبة التوصيل" className="grid grid-cols-2 gap-1 rounded-lg bg-bg p-1">
+                {([["ret", "المرتجعات"], ["delivery", "التوصيل"]] as const).map(([k, l]) => (
+                  <button key={k} type="button" role="radio" aria-checked={retAs === k} onClick={() => setRetAs(k)}
+                    className={`rounded-md px-3 py-1.5 text-sm transition duration-200 ease-out active:scale-95 focus-visible:outline-2 focus-visible:outline-accent
+                      ${retAs === k ? "bg-surface font-medium text-ink shadow-sm" : "text-muted hover:bg-surface/60 hover:text-ink"}`}>{l}</button>
+                ))}
+              </div>
             </div>
+            <p className="mt-1 text-xs text-muted">
+              {inp.ret.trim() !== "" && <>مرتجعات {fmt(Math.min(num(inp.ret), 100))}% تعني توصيل {fmt(100 - Math.min(num(inp.ret), 100))}%.</>}
+            </p>
+            <Field className="mt-3 max-w-[50%]" label="شحن المرتجع عليك" suffix={cur} value={inp.retShip} onChange={(v) => set("retShip", v)} />
             {(inp.adMode !== "order" || num(inp.confirm) > 0 && num(inp.confirm) < 100 || num(inp.ret) > 0) && (
-              <p className="mt-2 text-sm leading-relaxed text-muted">
+              <p className="mt-3 text-sm leading-relaxed text-muted">
                 يعني إعلان كل طلب مشحون <Money v={res.adPerOrder} cur={cur} />
                 {res.adPerPaidOrder !== null && num(inp.ret) > 0 && <>، وكل طلب استلمه العميل ودفع <Money v={res.adPerPaidOrder} cur={cur} /></>}
               </p>
             )}
-          </Group>
+          </Section>
+
+          <Section title="الخصم والضريبة والعملة" summary={extrasSummary} open={!!openSec.extras} onToggle={() => toggle("extras")}>
+            <div className="grid grid-cols-2 items-end gap-3">
+              <Field label="خصم على السعر" suffix="%" value={inp.disc} onChange={(v) => set("disc", v)}
+                hint={res.discount > 0 ? `بعد الخصم: ${fmt(res.priceAfterDiscount)} ${cur}` : undefined} />
+              <label className="block min-w-0 text-sm text-muted">
+                العملة
+                <select value={cur} onChange={(e) => setCur(e.target.value)} className={`${box} mt-1 px-3 py-2.5`}>
+                  {CURRENCIES.map((c) => <option key={c.code || "none"} value={c.symbol}>{c.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 text-ink">
+              <span className="min-w-0">السعر شامل ضريبة القيمة المضافة وأنا مسجل بها</span>
+              <input type="checkbox" role="switch" checked={inp.vatOn} onChange={(e) => set("vatOn", e.target.checked)}
+                aria-label="السعر شامل ضريبة القيمة المضافة وأنا مسجل بها"
+                className="peer relative h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition-colors
+                  before:absolute before:top-0.5 before:right-0.5 before:size-5 before:rounded-full before:bg-white before:shadow before:transition-transform
+                  checked:bg-accent checked:before:-translate-x-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" />
+            </label>
+            {inp.vatOn && <Field className="mt-3 max-w-[50%]" label="نسبة الضريبة" suffix="%" value={inp.vat} onChange={(v) => set("vat", v)} />}
+          </Section>
         </section>
 
         {/* ───── receipt (results) ───── */}
