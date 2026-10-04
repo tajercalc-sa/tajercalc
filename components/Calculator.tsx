@@ -318,7 +318,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
     <>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
         {/* ───── inputs ───── */}
-        <section aria-label="المدخلات" className="min-w-0 space-y-3">
+        <section aria-label="المدخلات" className="min-w-0 space-y-3 lg:col-start-1 lg:row-start-1">
           {/* the five numbers every merchant knows; everything else has sensible defaults below */}
           <fieldset className="min-w-0 rounded-2xl border-0 bg-surface p-4 sm:p-6">
             <legend className="float-right mb-3 w-full text-base font-bold text-ink">أرقامك الأساسية</legend>
@@ -470,7 +470,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
         </section>
 
         {/* ───── receipt (results) ───── */}
-        <section aria-label="النتائج" aria-live="polite" className="min-w-0 lg:sticky lg:top-4">
+        <section aria-label="النتائج" aria-live="polite" className="min-w-0 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div ref={receiptRef} id="receipt" className="receipt rounded-t-2xl px-5 pb-6 pt-5 sm:px-6">
             <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-line pb-3">
               <h2 className="text-base font-bold">إيصال طلب واحد</h2>
@@ -579,9 +579,11 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             </p>
           </div>
         </section>
+
+        {/* desktop: fills the space under the inputs, beside the sticky receipt; phone: after the results */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2"><SensitivityChart inp={inp} cur={cur} target={target} setTarget={setTarget} focusTarget={targetFocus} initialVar={preset.chartVar} /></div>
       </div>
 
-      <div className="mt-6"><SensitivityChart inp={inp} cur={cur} target={target} setTarget={setTarget} focusTarget={targetFocus} initialVar={preset.chartVar} /></div>
 
       {/* ───── mobile: net result always in reach while editing ───── */}
       <div aria-hidden={receiptVisible}
