@@ -343,7 +343,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             </div>
           </fieldset>
 
-          <p className="px-1 pt-2 text-sm text-muted">تفاصيل إضافية لنتيجة أدق. اتركها إن ما تعرفها، والحاسبة تستخدم قيماً منطقية:</p>
+          <p className="px-1 pt-2 text-sm text-muted">تفاصيل اختيارية لنتيجة أدق. إذا ما تعرفها اتركها، والحاسبة تستخدم قيم افتراضية مناسبة.</p>
 
           <Section title="رسوم الدفع" summary={paySummary} open={!!openSec.payments} onToggle={() => toggle("payments")} note={platform.feesNote}>
             <div className="grid grid-cols-3 gap-x-2 gap-y-1 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] sm:items-end">

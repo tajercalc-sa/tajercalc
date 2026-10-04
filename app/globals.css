@@ -57,8 +57,9 @@
   }
 }
 
-/* Theme switch: colours cross-fade only during the switch (class added for 300ms by ThemeToggle) */
-html.theme-fade, html.theme-fade * { transition: background-color .3s ease, border-color .3s ease, color .3s ease, fill .3s ease !important; }
+
+/* theme switch: one cross-fade of the page snapshot (see ThemeToggle) */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .28s; animation-timing-function: ease-out; }
 
 @layer base {
   html {
@@ -110,7 +111,6 @@ html.theme-fade, html.theme-fade * { transition: background-color .3s ease, bord
 @media (prefers-reduced-motion: reduce) {
   .value-pulse, .toast-in, .toast-out, .skeleton, .pop-in { animation-duration: 1ms !important; }
   .toast-timer { animation: none; }
-  html.theme-fade, html.theme-fade * { transition: none !important; }
 }
 
 /* Numbers inside RTL text: isolate so "15.04 ر.س" and "-3.2" never flip */

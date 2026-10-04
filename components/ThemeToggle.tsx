@@ -10,12 +10,16 @@ const KEY = "theme";
 function apply(mode: Mode, animate: boolean) {
   const root = document.documentElement;
   const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  if (animate && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    root.classList.add("theme-fade");
-    setTimeout(() => root.classList.remove("theme-fade"), 320);
+  const set = () => { root.dataset.theme = dark ? "dark" : "light"; root.dataset.themeMode = mode; };
+  if (root.dataset.theme === (dark ? "dark" : "light")) { root.dataset.themeMode = mode; return; }
+  // One GPU cross-fade of the whole page (View Transitions) instead of animating the colours of every
+  // element, which made the switch stutter. Browsers without it, and reduced motion, switch instantly.
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+  if (animate && doc.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    doc.startViewTransition(set);
+  } else {
+    set();
   }
-  root.dataset.theme = dark ? "dark" : "light";
-  root.dataset.themeMode = mode;
 }
 
 const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
