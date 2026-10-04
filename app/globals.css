@@ -58,8 +58,9 @@
 }
 
 
-/* theme switch: one cross-fade of the page snapshot (see ThemeToggle) */
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: .28s; animation-timing-function: ease-out; }
+/* theme switch (see ThemeToggle): the new theme is revealed by a growing circle, nothing else animates */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.theme-switching, html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after { transition: none !important; }
 
 @layer base {
   html {

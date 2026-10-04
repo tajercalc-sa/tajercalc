@@ -1,25 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useToast } from "./ui/Toast";
+import { flushSync } from "react-dom";
 
 type Mode = "system" | "light" | "dark";
 const KEY = "theme";
 
-/** Same logic as the inline script in layout.tsx (that one runs before paint). */
-function apply(mode: Mode, animate: boolean) {
+type VTDoc = Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void> } };
+
+/**
+ * Same logic as the inline script in layout.tsx (that one runs before paint).
+ * The switch is one View Transition: a circle of the new theme grows from the button that was pressed.
+ * While it runs, every CSS transition is switched off so no element fades on its own afterwards
+ * (that second, per-element fade was what made the switch feel laggy). No support / reduced motion: instant.
+ */
+function apply(mode: Mode, animate: boolean, from?: { x: number; y: number }, extra?: () => void) {
   const root = document.documentElement;
   const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  const set = () => { root.dataset.theme = dark ? "dark" : "light"; root.dataset.themeMode = mode; };
-  if (root.dataset.theme === (dark ? "dark" : "light")) { root.dataset.themeMode = mode; return; }
-  // One GPU cross-fade of the whole page (View Transitions) instead of animating the colours of every
-  // element, which made the switch stutter. Browsers without it, and reduced motion, switch instantly.
-  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
-  if (animate && doc.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    doc.startViewTransition(set);
-  } else {
-    set();
-  }
+  const next = dark ? "dark" : "light";
+  const set = () => {
+    root.classList.add("theme-switching");
+    root.dataset.theme = next;
+    root.dataset.themeMode = mode;
+    extra?.();
+    void root.offsetWidth; // apply the new colours with transitions off
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
+  };
+  const doc = document as VTDoc;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!animate || reduce || !doc.startViewTransition || root.dataset.theme === next) { set(); return; }
+
+  const x = from?.x ?? innerWidth / 2, y = from?.y ?? 0;
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  doc.startViewTransition(set).ready.then(() => {
+    root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 480, easing: "cubic-bezier(.4, 0, .2, 1)", pseudoElement: "::view-transition-new(root)" },
+    );
+  }).catch(() => {});
 }
 
 const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
@@ -31,7 +49,6 @@ const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
 export function ThemeToggle() {
   // null until mounted: the server can't know the visitor's choice, so render a same-size placeholder (no layout shift).
   const [mode, setMode] = useState<Mode | null>(null);
-  const toast = useToast();
 
   useEffect(() => {
     setMode((document.documentElement.dataset.themeMode as Mode) || "system");
@@ -46,12 +63,12 @@ export function ThemeToggle() {
     return () => mq.removeEventListener("change", on);
   }, [mode]);
 
-  const choose = (m: Mode) => {
+  const choose = (m: Mode, e: React.MouseEvent<HTMLButtonElement>) => {
     if (m === mode) return;
-    setMode(m);
     try { m === "system" ? localStorage.removeItem(KEY) : localStorage.setItem(KEY, m); } catch { /* private mode: works for this visit only */ }
-    apply(m, true);
-    toast.show(m === "system" ? "المظهر يتبع إعداد جهازك" : m === "dark" ? "تم تفعيل الوضع الداكن" : "تم تفعيل الوضع الفاتح", { kind: "info", duration: 1800 });
+    const b = e.currentTarget.getBoundingClientRect();
+    // the toggle's own highlight moves inside the transition, so the new snapshot already shows it
+    apply(m, true, { x: b.left + b.width / 2, y: b.top + b.height / 2 }, () => flushSync(() => setMode(m)));
   };
 
   return (
@@ -60,7 +77,7 @@ export function ThemeToggle() {
         const on = mode === o.mode;
         return (
           <button key={o.mode} type="button" role="radio" aria-checked={on} aria-label={o.label} title={o.label}
-            disabled={mode === null} onClick={() => choose(o.mode)}
+            disabled={mode === null} onClick={(e) => choose(o.mode, e)}
             className={`grid size-8 place-items-center rounded-full transition duration-200 ease-out active:scale-90 disabled:cursor-wait disabled:opacity-60
               focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent
               ${on ? "bg-surface text-ink shadow-sm" : "text-muted hover:bg-surface/60 hover:text-ink"}`}>
