@@ -283,14 +283,14 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             <div className="grid grid-cols-2 items-end gap-3">
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
               <Field label="عمولة المنصة" suffix="%" value={inp.comm} onChange={(v) => set("comm", v)} />
-              <label className="col-span-2 block min-w-0 text-sm text-muted">
+              {platform.plans.length > 0 && <label className="col-span-2 block min-w-0 text-sm text-muted">
                 باقة {platform.name}
                 <select value={plan} className={`${box} mt-1 px-3 py-2.5`}
                   onChange={(e) => { setPlan(e.target.value); if (e.target.value !== "") set("fixedMonthly", e.target.value); }}>
                   <option value="">لا أستخدم {platform.name}، أو سأدخل التكلفة يدوياً</option>
                   {platform.plans.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
-              </label>
+              </label>}
               <Field label="تكاليف ثابتة شهرية" suffix={cur} value={inp.fixedMonthly}
                 onChange={(v) => { setPlan(""); set("fixedMonthly", v); }} />
               <Field label="الطلبات المشحونة في الشهر" step="1" value={inp.orders} onChange={(v) => set("orders", v)} />

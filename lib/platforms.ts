@@ -25,13 +25,8 @@ export const SALLA: Platform = {
     "مدى: 1% + 1 ريال (مؤكد من سلة). البطاقات: مقال سلة يذكر 2% + 1 ولوحة التحكم تذكر 2.2% + 1، فالزر يستخدم 2.2% حتى لا يبالغ في ربحك. Apple Pay بنفس رسوم البطاقة المستخدمة. مراجعة: 1 أكتوبر 2026.",
 };
 
-/** Zid: zid.sa/ar/pricing and zid.sa/ar/solutions/payments (Growth plan fees), checked 3 Oct 2026. */
-export const ZID_PLANS = [
-  { value: "0", label: "البداية (مجانية)" },
-  { value: "99", label: "الانطلاقة 99 شهرياً" },
-  { value: "299", label: "النمو 299 شهرياً" },
-] as const;
-
+/** Zid: payment fees from zid.sa/ar/solutions/payments (Growth plan), checked 3 Oct 2026.
+ * Plan prices are not preset: they change with offers and could not be verified reliably. */
 export const ZID_SAMPLE_PAYMENTS: PaymentRow[] = [
   { share: "50", pct: "1", fixed: "1" },
   { share: "35", pct: "2.3", fixed: "1" },
@@ -43,8 +38,8 @@ export const ZID_SAMPLE_PAYMENTS: PaymentRow[] = [
 export const ZID: Platform = {
   id: "zid",
   name: "زد",
-  plans: ZID_PLANS,
-  plansNote: "أسعار باقات زد الشهرية من صفحة الأسعار الرسمية (3 أكتوبر 2026) وقد تتغير مع العروض. باقة الاحترافية بسعر حسب الطلب، فأدخلها يدوياً.",
+  plans: [],
+  plansNote: "اكتب اشتراك باقتك في زد شهرياً في خانة التكاليف الثابتة (السنوي مقسوم على 12). لم نعبّئ أسعار الباقات لأنها تتغير مع العروض، فخذها من صفحة الأسعار في زد أو من فاتورتك.",
   samplePayments: ZID_SAMPLE_PAYMENTS,
   fillRows: 3,
   fillLabel: "عبّئ برسوم زد باي (مدى والبطاقات والتقسيط)",
