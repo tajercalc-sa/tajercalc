@@ -26,7 +26,16 @@ export const SALLA: Platform = {
 };
 
 /** Zid: payment fees from zid.sa/ar/solutions/payments (Growth plan), checked 3 Oct 2026.
- * Plan prices are not preset: they change with offers and could not be verified reliably. */
+ * Plans from zid.sa/ar/pricing screenshots (monthly + yearly views), 4 Oct 2026. Monthly equivalents;
+ * the National Day "extra free year" promo is ignored. Pro (الاحترافية) is quote-only, so not listed. */
+export const ZID_PLANS = [
+  { value: "0", label: "البداية مجانية" },
+  { value: "99", label: "الانطلاقة شهري 99" },
+  { value: "82.5", label: "الانطلاقة سنوي (990 في السنة)" },
+  { value: "299", label: "النمو شهري 299" },
+  { value: "249.17", label: "النمو سنوي (2,990 في السنة)" },
+] as const;
+
 export const ZID_SAMPLE_PAYMENTS: PaymentRow[] = [
   { share: "50", pct: "1", fixed: "1" },
   { share: "35", pct: "2.3", fixed: "1" },
@@ -38,8 +47,8 @@ export const ZID_SAMPLE_PAYMENTS: PaymentRow[] = [
 export const ZID: Platform = {
   id: "zid",
   name: "زد",
-  plans: [],
-  plansNote: "اكتب اشتراك باقتك في زد شهرياً في خانة التكاليف الثابتة (السنوي مقسوم على 12). لم نعبّئ أسعار الباقات لأنها تتغير مع العروض، فخذها من صفحة الأسعار في زد أو من فاتورتك.",
+  plans: ZID_PLANS,
+  plansNote: "أسعار باقات زد من صفحة الأسعار الرسمية (4 أكتوبر 2026) وقد تتغير مع العروض. الاشتراك السنوي مقسوم على 12 شهراً، وباقة الاحترافية بسعر حسب الطلب فأدخلها يدوياً.",
   samplePayments: ZID_SAMPLE_PAYMENTS,
   fillRows: 3,
   fillLabel: "عبّئ برسوم زد باي (مدى والبطاقات والتقسيط)",
