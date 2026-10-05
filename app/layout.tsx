@@ -6,10 +6,13 @@ import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
 // Self-hosted from npm (@fontsource): no request to Google from the visitor or at build time.
-// Each CSS file uses unicode-range, so the browser downloads only the Arabic/Latin subsets it needs.
-import "@fontsource/ibm-plex-sans-arabic/400.css";
-import "@fontsource/ibm-plex-sans-arabic/500.css";
-import "@fontsource/ibm-plex-sans-arabic/700.css";
+// Only the Arabic and Latin subsets are imported (the site has no Cyrillic/extended-Latin text), which keeps the render-blocking CSS small.
+import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
+import "@fontsource/ibm-plex-sans-arabic/latin-400.css";
+import "@fontsource/ibm-plex-sans-arabic/arabic-500.css";
+import "@fontsource/ibm-plex-sans-arabic/latin-500.css";
+import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
+import "@fontsource/ibm-plex-sans-arabic/latin-700.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
