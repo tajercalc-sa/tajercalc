@@ -211,13 +211,8 @@ export const DEFAULT_INPUTS: Inputs = {
   comm: "0",
   fixedMonthly: "0",
   orders: "100",
-  payments: [
-    { share: "60", pct: "0", fixed: "0" },
-    { share: "40", pct: "0", fixed: "0" },
-    { share: "0", pct: "0", fixed: "0" },
-    { share: "0", pct: "0", fixed: "0" },
-    { share: "0", pct: "0", fixed: "0" },
-  ],
+  // every store pays gateway fees, so the general calculator starts with typical ones (Salla's) instead of 0
+  payments: SALLA_SAMPLE_PAYMENTS.map((r) => ({ ...r })),
   feeVat: "15",
   confirm: "100",
   ret: "10",

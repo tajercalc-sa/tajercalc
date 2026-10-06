@@ -66,16 +66,16 @@ const be = calculate({ ...DEFAULT_INPUTS, ads: String(cod.maxAdCostPerLead), con
 const beOk = Math.abs(be.profit) < 1e-9;
 console.log(beOk ? "break-even ad cost per incoming order gives profit 0 ✓" : `break-even FAILED ${be.profit}`);
 
-// "بكم أبيع؟" with the default numbers: 30% margin → 120.83, 30 SAR per order → 113.89, 90% impossible (returns eat 10%)
+// "بكم أبيع؟" with the default numbers (Salla fees): 30% margin → 125.57, 30 SAR per order → 116.90, 90% impossible (returns + fees)
 const d0 = calculate(DEFAULT_INPUTS);
 const tm = priceForTarget(d0, { kind: "margin", value: "30" });
 const ta = priceForTarget(d0, { kind: "amount", value: "30" });
 const ti = priceForTarget(d0, { kind: "margin", value: "90" });
 // and the price it returns must actually give that margin when typed back into the calculator
 const back = tm.ok ? calculate({ ...DEFAULT_INPUTS, price: String(tm.priceBeforeDiscount) }) : null;
-const tgtOk = tm.ok && fmt(tm.price) === "120.83" && ta.ok && fmt(ta.price) === "113.89" && !ti.ok && ti.reason === "impossible"
-  && fmt(ti.maxMarginPct) === "90" && back !== null && Math.abs(back.marginPct! - 30) < 1e-9;
-console.log(tgtOk ? "target price: 30% → 120.83, 30 SAR → 113.89, 90% impossible (max 90%), round-trip margin = 30% ✓" : "target price FAILED");
+const tgtOk = tm.ok && fmt(tm.price) === "125.57" && ta.ok && fmt(ta.price) === "116.9" && !ti.ok && ti.reason === "impossible"
+  && fmt(ti.maxMarginPct) === "88.52" && back !== null && Math.abs(back.marginPct! - 30) < 1e-9;
+console.log(tgtOk ? "target price: 30% → 125.57, 30 SAR → 116.90, 90% impossible (max 88.52%), round-trip margin = 30% ✓" : "target price FAILED");
 // with a discount the visitor types the price BEFORE the discount
 const dd = calculate({ ...DEFAULT_INPUTS, disc: "20" });
 const td = priceForTarget(dd, { kind: "margin", value: "30" });
@@ -92,8 +92,8 @@ console.log(anchor ? "anchor Salla 100 via mada = 97.7 ✓" : "anchor FAILED " +
 const bud = { ...DEFAULT_INPUTS, adMode: "budget" as const, adBudget: "2000", fixedMonthly: "99" };
 const bo = calculate(bud).breakEvenOrders!;
 const mAt = (n: number) => calculate({ ...bud, orders: String(n) }).monthlyProfit;
-const budOk = bo === 56 && mAt(bo) >= 0 && mAt(bo - 1) < 0;
-console.log(budOk ? "budget mode: 99 + 2,000 budget → 56 orders, matches the monthly-profit crossing ✓" : `budget beo FAILED ${bo}`);
+const budOk = bo === 60 && mAt(bo) >= 0 && mAt(bo - 1) < 0;
+console.log(budOk ? "budget mode: 99 + 2,000 budget → 60 orders, matches the monthly-profit crossing ✓" : `budget beo FAILED ${bo}`);
 // break-even ROAS with confirmation: price ÷ break-even ad cost per incoming order (COD page: 4.53x)
 const codPage = calculate({ ...DEFAULT_INPUTS, confirm: "75", ret: "20",
   payments: [{ share: "30", pct: "1", fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "70", pct: "0", fixed: "0" }] });
