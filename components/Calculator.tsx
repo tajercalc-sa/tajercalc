@@ -307,19 +307,23 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
     `الإعلان ${adModeLabel}`,
   ].join(" · ");
   const priceN = num(inp.price);
+  // Once the visitor types in the wholesale helper, it owns the cost field (locked) until hidden:
+  // complete numbers → cost per piece; cleared or incomplete → 0, so the two never disagree.
+  const wsUnitOf = (w: typeof ws) =>
+    num(w.qty) > 0 && num(w.total) > 0 ? (num(w.total) + num(w.ship)) / num(w.qty) : null;
+  const wsUnit = wsUnitOf(ws);
+  const wsTouched = ws.total !== "" || ws.ship !== "" || ws.qty !== "";
+  const costLocked = wsOpen && wsTouched;
   const setWsField = (k: "total" | "ship" | "qty", v: string) => {
     const n = { ...ws, [k]: v };
     setWs(n);
-    // update the cost in the same render (the effect below covers reopening the helper)
-    if (num(n.qty) > 0 && num(n.total) > 0) set("cost", String(+((num(n.total) + num(n.ship)) / num(n.qty)).toFixed(2)));
+    const u = wsUnitOf(n);
+    set("cost", u === null ? "0" : String(+u.toFixed(2))); // same render as the typing, no lag
   };
-  const wsUnit = num(ws.qty) > 0 && num(ws.total) > 0 ? (num(ws.total) + num(ws.ship)) / num(ws.qty) : null;
-  // While the wholesale helper is open and complete, it owns the cost field (locked), so the two never disagree.
-  const costLocked = wsOpen && wsUnit !== null;
-  const wsCost = wsUnit === null ? "" : String(+wsUnit.toFixed(2));
-  useEffect(() => {
-    if (costLocked && inp.cost !== wsCost) set("cost", wsCost);
-  }, [costLocked, wsCost, inp.cost, set]);
+  const toggleWs = () => {
+    if (wsOpen) setWs({ total: "", ship: "", qty: "" }); // hiding releases the cost field; reopening starts fresh
+    setWsOpen(!wsOpen);
+  };
   // The platform fees and plan prices are in Saudi riyals; say so when the visitor picked another currency.
   const curNote = cur && cur !== "ر.س"
     ? "رسوم المنصة وأسعار الباقات المعبّأة تلقائياً بالريال السعودي. إذا عملتك مختلفة، عدّل الأرقام بعملتك."
@@ -367,7 +371,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
                 ? <Field label="نسبة التحويل" suffix="%" value={inp.conv} onChange={(v) => set("conv", v)} />
                 : <Field label="الطلبات المشحونة في الشهر" step="1" value={inp.orders} onChange={(v) => set("orders", v)} />}
             </div>
-            <button type="button" aria-expanded={wsOpen} onClick={() => setWsOpen((o) => !o)}
+            <button type="button" aria-expanded={wsOpen} onClick={toggleWs}
               className="mt-4 text-sm font-medium text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
               {wsOpen ? "إخفاء حساب الجملة" : "اشتريت بالجملة؟ احسب تكلفة القطعة"}
             </button>
@@ -379,7 +383,8 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
                   <Field className="col-span-2" label="شحن وجمارك ورسوم الشحنة كلها" suffix={cur} value={ws.ship} onChange={(v) => setWsField("ship", v)} />
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-muted">
-                  {wsUnit === null ? "اكتب إجمالي الفاتورة وعدد القطع، وتُحسب تكلفة القطعة وتوضع في خانة التكلفة فوق."
+                  {wsUnit === null
+                    ? wsTouched ? "أكمل إجمالي الفاتورة وعدد القطع. حتى ذلك الحين التكلفة فوق صفر." : "اكتب إجمالي الفاتورة وعدد القطع، وتُحسب تكلفة القطعة وتوضع في خانة التكلفة فوق."
                     : <>تكلفة القطعة <b className="text-ink"><Money v={wsUnit} cur={cur} /></b> (الفاتورة + الشحن والجمارك ÷ عدد القطع). خانة التكلفة فوق مربوطة بهذا الحساب، أخفه إذا تبغى تكتبها بنفسك.</>}
                 </p>
               </div>
