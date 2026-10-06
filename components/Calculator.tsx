@@ -25,15 +25,15 @@ const box =
   "hover:border-muted/60 disabled:cursor-not-allowed disabled:opacity-50 " +
   "focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
-function NumInput({ value, onChange, suffix, ariaLabel, flashKey, step }: {
-  value: string; onChange: (v: string) => void; suffix?: string; ariaLabel?: string; flashKey?: number; step?: string;
+function NumInput({ value, onChange, suffix, ariaLabel, flashKey, step, id }: {
+  value: string; onChange: (v: string) => void; suffix?: string; ariaLabel?: string; flashKey?: number; step?: string; id?: string;
 }) {
   // Negative numbers are counted as 0 by the math, so say so instead of silently ignoring them.
   const invalid = value.trim() !== "" && parseFloat(value) < 0;
   return (
     <span className="relative mt-1 block">
       <input
-        key={flashKey} type="number" inputMode="decimal" min={0} step={step ?? "any"}
+        key={flashKey} id={id} type="number" inputMode="decimal" min={0} step={step ?? "any"}
         value={value} aria-label={ariaLabel} onChange={(e) => onChange(e.target.value)}
         aria-invalid={invalid || undefined} title={invalid ? "القيمة السالبة تُحسب صفراً" : undefined}
         className={`${box} tabular py-2.5 pr-3 text-right [direction:ltr] ${suffix ? "pl-11" : "pl-3"} ${flashKey ? "just-changed" : ""}
@@ -139,6 +139,10 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const [target, setTarget] = useState<Target>(base.target);
   const [targetFocus, setTargetFocus] = useState(0); // bumps → chart switches to price mode and focuses the target field
   const [restored, setRestored] = useState(false);   // don't overwrite storage with defaults before reading it
+  const discId = useId();
+  const [discUnit, setDiscUnit] = useState<"pct" | "amt">("pct"); // type the discount as % or as an amount (stored as % either way)
+  const [wsOpen, setWsOpen] = useState(false);                      // "bought wholesale" helper
+  const [ws, setWs] = useState({ total: "", ship: "", qty: "" });
   const [retAs, setRetAs] = useState<"ret" | "delivery">("ret"); // type returns, or delivery rate (= 100 − returns)
   const [filled, setFilled] = useState(0);
   const [payReset, setPayReset] = useState(0); // >0 = payment fields were just reset (replays the highlight on all rows) // >0 = Salla fees just filled (also re-keys inputs to replay the highlight)
@@ -302,8 +306,26 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
     `شحن المرتجع ${fmt(num(inp.retShip))} ${curShort}`,
     `الإعلان ${adModeLabel}`,
   ].join(" · ");
+  const priceN = num(inp.price);
+  const discShown = discUnit === "pct" || inp.disc.trim() === "" ? inp.disc : String(+((priceN * num(inp.disc)) / 100).toFixed(2));
+  const setDiscShown = (v: string) => {
+    if (discUnit === "pct") return set("disc", v);
+    if (v.trim() === "") return set("disc", "");
+    const a = Math.min(Math.max(parseFloat(v) || 0, 0), priceN);
+    set("disc", priceN > 0 ? String(+((a / priceN) * 100).toFixed(4)) : "0");
+  };
+  const setWsField = (k: "total" | "ship" | "qty", v: string) => {
+    const n = { ...ws, [k]: v };
+    setWs(n);
+    const q = num(n.qty);
+    if (q > 0 && num(n.total) > 0) set("cost", String(+((num(n.total) + num(n.ship)) / q).toFixed(2)));
+  };
+  const wsUnit = num(ws.qty) > 0 && num(ws.total) > 0 ? (num(ws.total) + num(ws.ship)) / num(ws.qty) : null;
+  // The platform fees and plan prices are in Saudi riyals; say so when the visitor picked another currency.
+  const curNote = cur && cur !== "ر.س"
+    ? "رسوم المنصة وأسعار الباقات المعبّأة تلقائياً بالريال السعودي. إذا عملتك مختلفة، عدّل الأرقام بعملتك."
+    : null;
   const extrasSummary = [
-    res.discount > 0 ? `خصم ${fmt(res.discount * 100)}%` : "بدون خصم",
     inp.vatOn ? `السعر شامل ضريبة ${fmt(num(inp.vat))}%` : "بدون ضريبة مبيعات",
     CURRENCIES.find((c) => c.symbol === cur)?.label ?? "",
   ].filter(Boolean).join(" · ");
@@ -321,9 +343,24 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
         <section aria-label="المدخلات" className="min-w-0 space-y-3 lg:col-start-1 lg:row-start-1">
           {/* the five numbers every merchant knows; everything else has sensible defaults below */}
           <fieldset className="min-w-0 rounded-2xl border-0 bg-surface p-4 sm:p-6">
-            <legend className="float-right mb-3 w-full text-base font-bold text-ink">أرقامك الأساسية</legend>
+            <legend className="float-right mb-3 w-full text-base font-bold text-ink">
+              أرقامك الأساسية
+              <span className="block text-sm font-normal text-muted">الأرقام لطلب واحد، وإجمالي الشهر يظهر في الإيصال.</span>
+            </legend>
             <div className="clear-both grid grid-cols-2 items-end gap-3">
               <Field label="سعر البيع" suffix={cur} value={inp.price} onChange={(v) => set("price", v)} />
+              <div className="min-w-0 text-sm text-muted">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor={discId}>الخصم</label>
+                  <span role="group" aria-label="وحدة الخصم" className="flex overflow-hidden rounded-md border border-line text-xs">
+                    {([["pct", "%"], ["amt", cur || "مبلغ"]] as const).map(([u, l]) => (
+                      <button key={u} type="button" aria-pressed={discUnit === u} onClick={() => setDiscUnit(u)}
+                        className={`px-2 py-0.5 transition-colors ${discUnit === u ? "bg-accent text-white" : "text-muted hover:bg-ink/[.05]"}`}>{l}</button>
+                    ))}
+                  </span>
+                </div>
+                <NumInput value={discShown} onChange={setDiscShown} suffix={discUnit === "pct" ? "%" : cur} ariaLabel="خصم على السعر" id={discId} />
+              </div>
               <Field label="تكلفة المنتج عليك" suffix={cur} value={inp.cost} onChange={(v) => set("cost", v)} />
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
               {inp.adMode === "order" && <Field label={num(inp.confirm) > 0 && num(inp.confirm) < 100 ? "الإعلان لكل طلب قبل التأكيد" : "تكلفة الإعلان لكل طلب"}
@@ -341,11 +378,29 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
                 ? <Field label="نسبة التحويل" suffix="%" value={inp.conv} onChange={(v) => set("conv", v)} />
                 : <Field label="الطلبات المشحونة في الشهر" step="1" value={inp.orders} onChange={(v) => set("orders", v)} />}
             </div>
+            <button type="button" aria-expanded={wsOpen} onClick={() => setWsOpen((o) => !o)}
+              className="mt-4 text-sm font-medium text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+              {wsOpen ? "إخفاء حساب الجملة" : "اشتريت بالجملة؟ احسب تكلفة القطعة"}
+            </button>
+            {wsOpen && (
+              <div className="mt-3 rounded-xl border border-line p-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="إجمالي فاتورة الشراء" suffix={cur} value={ws.total} onChange={(v) => setWsField("total", v)} />
+                  <Field label="عدد القطع" step="1" value={ws.qty} onChange={(v) => setWsField("qty", v)} />
+                  <Field className="col-span-2" label="شحن وجمارك ورسوم الشحنة كلها" suffix={cur} value={ws.ship} onChange={(v) => setWsField("ship", v)} />
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                  {wsUnit === null ? "اكتب إجمالي الفاتورة وعدد القطع، وتُحسب تكلفة القطعة وتوضع في خانة التكلفة فوق."
+                    : <>تكلفة القطعة <b className="text-ink"><Money v={wsUnit} cur={cur} /></b> (الفاتورة + الشحن والجمارك ÷ عدد القطع)، وقد وُضعت في خانة التكلفة.</>}
+                </p>
+              </div>
+            )}
           </fieldset>
 
           <p className="px-1 pt-2 text-sm text-muted">تفاصيل اختيارية لنتيجة أدق. إذا ما تعرفها اتركها، والحاسبة تستخدم قيم افتراضية مناسبة.</p>
 
-          <Section title="رسوم الدفع" summary={paySummary} open={!!openSec.payments} onToggle={() => toggle("payments")} note={platform.feesNote}>
+          <Section title="رسوم الدفع" summary={paySummary} open={!!openSec.payments} onToggle={() => toggle("payments")}
+            note={curNote ? <>{platform.feesNote}<br />{curNote}</> : platform.feesNote}>
             <div className="grid grid-cols-3 gap-x-2 gap-y-1 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] sm:items-end">
               <span className="hidden sm:block" />
               <span className="text-xs text-muted">من الطلبات</span>
@@ -453,21 +508,17 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             )}
           </Section>
 
-          <Section title="الخصم والضريبة والعملة" summary={extrasSummary} open={!!openSec.extras} onToggle={() => toggle("extras")}>
-            <div className="grid grid-cols-2 items-end gap-3">
-              <Field label="خصم على السعر" suffix="%" value={inp.disc} onChange={(v) => set("disc", v)}
-                hint={res.discount > 0 ? `بعد الخصم: ${fmt(res.priceAfterDiscount)} ${cur}` : undefined} />
-              <label className="block min-w-0 text-sm text-muted">
-                العملة
-                <select value={cur} onChange={(e) => setCur(e.target.value)} className={`${box} mt-1 px-3 py-2.5`}>
-                  {CURRENCIES.map((c) => <option key={c.code || "none"} value={c.symbol}>{c.label}</option>)}
-                </select>
-              </label>
-            </div>
+          <Section title="الضريبة والعملة" summary={extrasSummary} open={!!openSec.extras} onToggle={() => toggle("extras")} note={curNote}>
+            <label className="block min-w-0 text-sm text-muted">
+              العملة
+              <select value={cur} onChange={(e) => setCur(e.target.value)} className={`${box} mt-1 px-3 py-2.5 sm:max-w-[50%]`}>
+                {CURRENCIES.map((c) => <option key={c.code || "none"} value={c.symbol}>{c.label}</option>)}
+              </select>
+            </label>
             <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 text-ink">
-              <span className="min-w-0">السعر شامل ضريبة القيمة المضافة وأنا مسجل بها</span>
+              <span className="min-w-0">سعر البيع يشمل ضريبة القيمة المضافة (متجري مسجل فيها)</span>
               <input type="checkbox" role="switch" checked={inp.vatOn} onChange={(e) => set("vatOn", e.target.checked)}
-                aria-label="السعر شامل ضريبة القيمة المضافة وأنا مسجل بها"
+                aria-label="سعر البيع يشمل ضريبة القيمة المضافة (متجري مسجل فيها)"
                 className="peer relative h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-line transition-colors
                   before:absolute before:top-0.5 before:right-0.5 before:size-5 before:rounded-full before:bg-white before:shadow before:transition-transform
                   checked:bg-accent checked:before:-translate-x-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" />
@@ -487,7 +538,19 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             </div>
 
             <dl className="m-0 text-sm">
-              <div className="flex justify-between gap-3 py-2">
+              {res.discount > 0 && (
+                <>
+                  <div className="flex justify-between gap-3 py-1.5">
+                    <dt>سعر البيع</dt>
+                    <dd className="m-0"><Money v={priceN} cur={cur} /></dd>
+                  </div>
+                  <div className="flex justify-between gap-3 py-1.5 text-muted">
+                    <dt>خصم <span className="num tabular">{fmt(res.discount * 100)}%</span></dt>
+                    <dd className="m-0"><Money v={priceN - res.priceAfterDiscount} cur={cur} sign /></dd>
+                  </div>
+                </>
+              )}
+              <div className={`flex justify-between gap-3 py-2 ${res.discount > 0 ? "border-t border-line" : ""}`}>
                 <dt>سعر البيع{res.discount > 0 ? " بعد الخصم" : ""}</dt>
                 <dd className="m-0 font-medium"><Money v={res.priceAfterDiscount} cur={cur} /></dd>
               </div>
@@ -514,6 +577,11 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
               <p className="mt-1 text-left text-sm text-muted">
                 {res.marginPct === null ? "" : <>هامش <span className="num tabular">{fmt(res.marginPct)}%</span> من سعر البيع</>}
               </p>
+              {num(inp.orders) > 0 && inp.adMode !== "cpc" && (
+                <p className="mt-0.5 text-left text-sm text-muted">
+                  × <span className="num tabular">{fmt(num(inp.orders))}</span> طلب = <Money v={res.profit * num(inp.orders)} cur={cur} /> في الشهر{FM > 0 ? " قبل التكاليف الثابتة" : ""}
+                </p>
+              )}
             </div>
           </div>
 
