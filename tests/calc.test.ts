@@ -49,6 +49,8 @@ for (let t = 0; t < N; t++) {
       : fmt(o.minPrice) + (o.discount > 0 && o.discount < 1 ? "قبل الخصم: " + fmt(o.minPriceBeforeDiscount!) : ""),
   };
   for (const k of Object.keys(got) as (keyof typeof got)[]) {
+    // budget mode: the prototype ignored that the monthly ad budget is a fixed cost (fixed on purpose, tested below)
+    if (k === "beo" && inp.adMode === "budget") continue;
     const want = strip(els[k].innerHTML);
     if (want !== got[k]) { fails++; if (fails <= 5) console.log("MISMATCH", t, k, "proto=", want, "new=", got[k]); }
   }
@@ -86,5 +88,16 @@ const salla = calculate({ ...DEFAULT_INPUTS, cost: "0", ship: "0", ret: "0", ret
   payments: [{ share: "100", pct: "1", fixed: "1" }, ...DEFAULT_INPUTS.payments.slice(1).map(() => ({ share: "0", pct: "0", fixed: "0" }))] });
 const anchor = fmt(salla.profit) === "97.7";
 console.log(anchor ? "anchor Salla 100 via mada = 97.7 ✓" : "anchor FAILED " + salla.profit);
+// budget mode: break-even orders must be exactly where the monthly profit turns non-negative (what the chart shows)
+const bud = { ...DEFAULT_INPUTS, adMode: "budget" as const, adBudget: "2000", fixedMonthly: "99" };
+const bo = calculate(bud).breakEvenOrders!;
+const mAt = (n: number) => calculate({ ...bud, orders: String(n) }).monthlyProfit;
+const budOk = bo === 56 && mAt(bo) >= 0 && mAt(bo - 1) < 0;
+console.log(budOk ? "budget mode: 99 + 2,000 budget → 56 orders, matches the monthly-profit crossing ✓" : `budget beo FAILED ${bo}`);
+// break-even ROAS with confirmation: price ÷ break-even ad cost per incoming order (COD page: 4.53x)
+const codPage = calculate({ ...DEFAULT_INPUTS, confirm: "75", ret: "20",
+  payments: [{ share: "30", pct: "1", fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "70", pct: "0", fixed: "0" }] });
+const roasOk = Math.abs(codPage.breakEvenRoas! - 100 / codPage.maxAdCostPerLead) < 1e-9 && fmt(codPage.breakEvenRoas!) === "4.53";
+console.log(roasOk ? "break-even ROAS with 75% confirmation = 4.53x ✓" : `ROAS FAILED ${codPage.breakEvenRoas}`);
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk ? 0 : 1);

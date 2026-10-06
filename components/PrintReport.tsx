@@ -6,8 +6,12 @@ const N = ({ v }: { v: number }) => <span className="num">{fmt(v)}</span>;
  * Print-only report. Hidden on screen (#print-report {display:none}); in print it is the only
  * visible child of <body>. Uses tables and flex rows, never CSS grid (RTL + page breaks).
  */
-export function PrintReport({ inp, res, cur, productName, siteName, target, tgt }: {
+export function PrintReport({ inp, res, cur, productName, siteName, target, tgt, plan, wholesale }: {
   inp: Inputs; res: Result; cur: string; productName: string; siteName: string; target: Target; tgt: TargetPrice;
+  /** chosen platform plan, e.g. "سلة: Plus شهري 99" */
+  plan?: string;
+  /** only when the wholesale helper is open and owns the cost field, so it can't contradict a typed cost */
+  wholesale?: { total: number; ship: number; qty: number; unit: number };
 }) {
   const M = ({ v }: { v: number }) => <span className="num">{fmt(v)}{cur ? ` ${cur}` : ""}</span>;
   const FM = num(inp.fixedMonthly);
@@ -19,14 +23,20 @@ export function PrintReport({ inp, res, cur, productName, siteName, target, tgt 
     inputs.push(["نسبة الخصم", <span key="d" className="num">{fmt(res.discount * 100)}%</span>]);
     inputs.push(["السعر بعد الخصم", <M key="pa" v={res.priceAfterDiscount} />]);
   }
-  inputs.push(["تكلفة المنتج", <M key="c" v={num(inp.cost)} />], ["الشحن على المتجر", <M key="s" v={num(inp.ship)} />]);
+  inputs.push([wholesale ? "تكلفة القطعة (من الجملة)" : "تكلفة المنتج", <M key="c" v={num(inp.cost)} />], ["الشحن على المتجر", <M key="s" v={num(inp.ship)} />]);
   if (num(inp.comm) > 0) inputs.push(["عمولة المنصة", <span key="cm" className="num">{fmt(num(inp.comm))}%</span>]);
   if (inp.vatOn) inputs.push(["ضريبة القيمة المضافة", <>السعر شامل <N v={num(inp.vat)} />%</>]);
   if (num(inp.confirm) > 0 && num(inp.confirm) < 100) inputs.push(["نسبة التأكيد", <span key="cf" className="num">{fmt(num(inp.confirm))}%</span>]);
   inputs.push(["نسبة المرتجعات", <span key="r" className="num">{fmt(num(inp.ret))}%</span>]);
   if (num(inp.ret) > 0) inputs.push(["شحن المرتجع", <M key="rs" v={num(inp.retShip)} />]);
+  if (inp.adMode === "budget") inputs.push(["ميزانية الإعلان الشهرية", <M key="ab" v={num(inp.adBudget)} />]);
+  if (inp.adMode === "cpc") inputs.push(
+    ["تكلفة النقرة", <M key="cpc" v={num(inp.cpc)} />],
+    ["نسبة التحويل", <span key="cv" className="num">{fmt(num(inp.conv))}%</span>],
+  );
   inputs.push(["الإعلان لكل طلب مشحون", <M key="a" v={res.adPerOrder} />]);
   if (res.adPerPaidOrder !== null && num(inp.ret) > 0) inputs.push(["الإعلان لكل طلب مدفوع", <M key="ap" v={res.adPerPaidOrder} />]);
+  if (plan) inputs.push(["باقة المنصة", plan]);
   if (FM > 0) inputs.push(["تكاليف شهرية ثابتة", <M key="f" v={FM} />]);
   inputs.push(["عدد الطلبات شهرياً", <N key="o" v={num(inp.orders)} />]);
 
@@ -42,7 +52,10 @@ export function PrintReport({ inp, res, cur, productName, siteName, target, tgt 
     target.kind === "margin" ? <>سعر البيع لهامش <span className="num">{fmt(num(target.value))}%</span></> : <>سعر البيع لربح <M v={num(target.value)} /> للطلب</>,
     <M key="tp" v={tgt.priceBeforeDiscount} />,
   ]);
-  if (FM > 0) results.push(["طلبات التعادل شهرياً", res.breakEvenOrders === null ? "غير ممكن" : <N v={res.breakEvenOrders} />]);
+  if (FM > 0 || inp.adMode === "budget") results.push([
+    inp.adMode === "budget" ? "طلبات تغطي الثابت والإعلان شهرياً" : "طلبات التعادل شهرياً",
+    res.breakEvenOrders === null ? "غير ممكن" : <N v={res.breakEvenOrders} />,
+  ]);
 
   const pairs = (rows: [React.ReactNode, React.ReactNode][]) => {
     const out = [];
@@ -61,6 +74,7 @@ export function PrintReport({ inp, res, cur, productName, siteName, target, tgt 
   const barTotal = res.parts.reduce((s, p) => s + Math.max(p.value, 0), 0);
   const breakdown = res.parts.filter((p) => p.key === "c7" || Math.abs(p.value) >= 0.005);
   const pays = inp.payments.map((p, i) => ({ ...p, name: PAYMENT_METHODS[i] })).filter((p) => num(p.share) > 0);
+  const anyFee = pays.some((p) => num(p.pct) > 0 || num(p.fixed) > 0);
   const url = typeof location !== "undefined" && location.protocol.startsWith("http")
     ? location.host + location.pathname : "";
   const date = new Date().toLocaleDateString("en-GB");
@@ -101,7 +115,20 @@ export function PrintReport({ inp, res, cur, productName, siteName, target, tgt 
             <table><tbody>{pairs(inputs)}</tbody></table>
           </section>
 
-          {pays.length > 0 && (
+          {wholesale && (
+            <section>
+              <h2>حساب الجملة</h2>
+              <table><tbody>{pairs([
+                ["إجمالي فاتورة الشراء", <M key="wt" v={wholesale.total} />],
+                ["شحن وجمارك الشحنة", <M key="ws" v={wholesale.ship} />],
+                ["عدد القطع", <N key="wq" v={wholesale.qty} />],
+                ["تكلفة القطعة", <M key="wu" v={wholesale.unit} />],
+              ])}</tbody></table>
+              <p className="pr-note">تكلفة القطعة = (الفاتورة + الشحن والجمارك) ÷ عدد القطع</p>
+            </section>
+          )}
+
+          {pays.length > 0 && anyFee && (
             <section>
               <h2>وسائل الدفع</h2>
               <table className="pr-p">

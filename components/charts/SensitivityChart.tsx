@@ -168,7 +168,7 @@ export function SensitivityChart({ inp, cur, target, setTarget, focusTarget, ini
           : `${base0}. هدفك غير ممكن بهذه التكاليف.`;
       return `${base0}.`;
     }
-    return `تحتاج ${fmt(Math.ceil(be))} طلباً في الشهر لتغطية تكاليفك الثابتة.`;
+    return `تحتاج ${fmt(Math.ceil(be))} طلباً في الشهر لتغطية تكاليفك الثابتة${inp.adMode === "budget" ? " وميزانية الإعلان" : ""}.`;
   })();
 
   return (

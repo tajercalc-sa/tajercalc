@@ -578,7 +578,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
               <p className="mt-1 text-left text-sm text-muted">
                 {res.marginPct === null ? "" : <>هامش <span className="num tabular">{fmt(res.marginPct)}%</span> من سعر البيع</>}
               </p>
-              {num(inp.orders) > 0 && inp.adMode !== "cpc" && (
+              {num(inp.orders) > 0 && (
                 <p className="mt-0.5 text-left text-sm text-muted">
                   × <span className="num tabular">{fmt(num(inp.orders))}</span> طلب = <Money v={res.profit * num(inp.orders)} cur={cur} /> في الشهر{FM > 0 ? " قبل التكاليف الثابتة" : ""}
                 </p>
@@ -591,13 +591,15 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
               {([
                 [FM > 0 ? "ربح الشهر بعد التكاليف الثابتة" : "ربح الشهر", <Money key="m" v={res.monthlyProfit} cur={cur} />, pulse.monthly,
                   "صافي الطلب مضروباً في عدد طلباتك الشهرية، ناقص التكاليف الثابتة مثل اشتراك المنصة."],
-                ["طلبات تغطي التكاليف الثابتة", res.breakEvenOrders === null ? "غير ممكن" : <span key="b" className="num tabular">{fmt(res.breakEvenOrders)}</span>, pulse.beo,
-                  "عدد الطلبات اللي تحتاجها في الشهر حتى يغطي ربحها تكاليفك الثابتة. صفر يعني ما عندك تكاليف ثابتة."],
+                [inp.adMode === "budget" ? "طلبات تغطي الثابت والإعلان" : "طلبات تغطي التكاليف الثابتة", res.breakEvenOrders === null ? "غير ممكن" : <span key="b" className="num tabular">{fmt(res.breakEvenOrders)}</span>, pulse.beo,
+                  inp.adMode === "budget"
+                    ? "عدد الطلبات اللي تحتاجها في الشهر حتى يغطي ربحها التكاليف الثابتة وميزانية الإعلان الشهرية، لأن الميزانية مبلغ ثابت مهما كان عدد الطلبات."
+                    : "عدد الطلبات اللي تحتاجها في الشهر حتى يغطي ربحها تكاليفك الثابتة. صفر يعني ما عندك تكاليف ثابتة."],
                 [num(inp.confirm) > 0 && num(inp.confirm) < 100 && inp.adMode !== "budget" ? "أقصى إعلان للطلب قبل التأكيد" : "أقصى ما تدفعه إعلاناً للطلب",
                   res.maxAdCostPerLead > 0 ? <Money key="c" v={res.maxAdCostPerLead} cur={cur} /> : "لا يوجد هامش", pulse.cpa,
                   "أعلى تكلفة إعلان تقدر تدفعها للحصول على طلب واحد قبل ما يصير الطلب خاسراً (CPA التعادل). إذا عندك خطوة تأكيد، الرقم بنفس طريقة منصة الإعلانات: لكل طلب قبل التأكيد."],
                 [<span key="r"><bdi>ROAS</bdi> التعادل</span>, res.breakEvenRoas === null ? "غير ممكن" : <span key="rv" className="num tabular">{fmt(res.breakEvenRoas)}x</span>, pulse.roas,
-                  "العائد على الإعلان اللازم حتى لا تخسر: سعر البيع مقسوماً على أقصى تكلفة إعلان. لو عائد حملتك أقل من هذا الرقم فهي خاسرة."],
+                  "العائد على الإعلان اللازم حتى لا تخسر، بنفس طريقة منصة الإعلانات: مبيعات كل الطلبات الواردة مقسومة على الصرف. إذا عندك خطوة تأكيد، المنصة تحسب حتى الطلبات اللي ما تأكدت، فيرتفع الرقم المطلوب. لو عائد حملتك أقل منه فهي خاسرة."],
               ] as [React.ReactNode, React.ReactNode, number, string][]).map(([k, v, pk, help], i) => (
                 <div key={i} className="min-w-0 border-b border-line py-3">
                   <dt className="flex items-center text-muted">{k}<InfoTip label={typeof k === "string" ? k : "ROAS التعادل"}>{help}</InfoTip></dt>
@@ -678,7 +680,9 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
       <div className="h-20 lg:hidden" aria-hidden />
 
       {mounted && createPortal(
-        <PrintReport inp={inp} res={res} cur={cur} productName={productName} siteName={siteName} target={target} tgt={tgt} />,
+        <PrintReport inp={inp} res={res} cur={cur} productName={productName} siteName={siteName} target={target} tgt={tgt}
+          plan={planLabel ? `${platform.name}: ${planLabel}` : undefined}
+          wholesale={costLocked && wsUnit !== null ? { total: num(ws.total), ship: num(ws.ship), qty: num(ws.qty), unit: num(inp.cost) } : undefined} />,
         document.body,
       )}
     </>

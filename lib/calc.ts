@@ -52,7 +52,8 @@ export type Result = {
   isLoss: boolean;
   marginPct: number | null;
   monthlyProfit: number;
-  breakEvenOrders: number | null; // null = impossible
+  /** orders a month that cover the fixed costs (plus the ad budget in budget mode); null = impossible */
+  breakEvenOrders: number | null;
   maxAdCost: number; // cpa; <=0 means no margin
   breakEvenRoas: number | null;
   minPrice: number | null; // after discount
@@ -125,6 +126,12 @@ export function calculate(i: Inputs): Result {
   const cst = (1 - p) * (C + F * vf) + S + p * rs + A;
   const minP = k > 0 ? cst / k : null;
 
+  // A monthly ad budget does not change with the number of orders, so for "how many orders cover my
+  // fixed costs" it counts as a fixed cost, and each order contributes its profit before ads (cpa).
+  const budgetMode = i.adMode === "budget";
+  const fixedTotal = FM + (budgetMode ? num(i.adBudget) : 0);
+  const perOrder = budgetMode ? cpa : profit;
+
   return {
     priceAfterDiscount: P,
     discount: dsc,
@@ -137,9 +144,11 @@ export function calculate(i: Inputs): Result {
     isLoss: profit < 0,
     marginPct: P > 0 ? (profit / P) * 100 : null,
     monthlyProfit: profit * N - FM,
-    breakEvenOrders: FM === 0 ? 0 : profit > 0 ? Math.ceil(FM / profit) : null,
+    breakEvenOrders: fixedTotal === 0 ? 0 : perOrder > 0 ? Math.ceil(fixedTotal / perOrder - 1e-9) : null,
     maxAdCost: cpa,
-    breakEvenRoas: cpa > 0 && P > 0 ? P / cpa : null,
+    // Ad platforms report the sales of every incoming order, confirmed or not, so the break-even ROAS
+    // compares the price with the break-even ad cost per incoming order (cpa × confirmation rate).
+    breakEvenRoas: cpa > 0 && P > 0 ? P / (cpa * conf) : null,
     minPrice: minP,
     priceSlope: k,
     costPerOrder: cst,
