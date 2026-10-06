@@ -139,8 +139,6 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const [target, setTarget] = useState<Target>(base.target);
   const [targetFocus, setTargetFocus] = useState(0); // bumps → chart switches to price mode and focuses the target field
   const [restored, setRestored] = useState(false);   // don't overwrite storage with defaults before reading it
-  const discId = useId();
-  const [discUnit, setDiscUnit] = useState<"pct" | "amt">("pct"); // type the discount as % or as an amount (stored as % either way)
   const [wsOpen, setWsOpen] = useState(false);                      // "bought wholesale" helper
   const [ws, setWs] = useState({ total: "", ship: "", qty: "" });
   const [retAs, setRetAs] = useState<"ret" | "delivery">("ret"); // type returns, or delivery rate (= 100 − returns)
@@ -307,13 +305,6 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
     `الإعلان ${adModeLabel}`,
   ].join(" · ");
   const priceN = num(inp.price);
-  const discShown = discUnit === "pct" || inp.disc.trim() === "" ? inp.disc : String(+((priceN * num(inp.disc)) / 100).toFixed(2));
-  const setDiscShown = (v: string) => {
-    if (discUnit === "pct") return set("disc", v);
-    if (v.trim() === "") return set("disc", "");
-    const a = Math.min(Math.max(parseFloat(v) || 0, 0), priceN);
-    set("disc", priceN > 0 ? String(+((a / priceN) * 100).toFixed(4)) : "0");
-  };
   const setWsField = (k: "total" | "ship" | "qty", v: string) => {
     const n = { ...ws, [k]: v };
     setWs(n);
@@ -349,18 +340,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             </legend>
             <div className="clear-both grid grid-cols-2 items-end gap-3">
               <Field label="سعر البيع" suffix={cur} value={inp.price} onChange={(v) => set("price", v)} />
-              <div className="min-w-0 text-sm text-muted">
-                <div className="flex items-center justify-between gap-2">
-                  <label htmlFor={discId}>الخصم</label>
-                  <span role="group" aria-label="وحدة الخصم" className="flex overflow-hidden rounded-md border border-line text-xs">
-                    {([["pct", "%"], ["amt", cur || "مبلغ"]] as const).map(([u, l]) => (
-                      <button key={u} type="button" aria-pressed={discUnit === u} onClick={() => setDiscUnit(u)}
-                        className={`px-2 py-0.5 transition-colors ${discUnit === u ? "bg-accent text-white" : "text-muted hover:bg-ink/[.05]"}`}>{l}</button>
-                    ))}
-                  </span>
-                </div>
-                <NumInput value={discShown} onChange={setDiscShown} suffix={discUnit === "pct" ? "%" : cur} ariaLabel="خصم على السعر" id={discId} />
-              </div>
+              <Field label="الخصم" suffix="%" value={inp.disc} onChange={(v) => set("disc", v)} />
               <Field label="تكلفة المنتج عليك" suffix={cur} value={inp.cost} onChange={(v) => set("cost", v)} />
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
               {inp.adMode === "order" && <Field label={num(inp.confirm) > 0 && num(inp.confirm) < 100 ? "الإعلان لكل طلب قبل التأكيد" : "تكلفة الإعلان لكل طلب"}
