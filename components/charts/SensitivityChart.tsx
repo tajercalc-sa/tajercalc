@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calculate, fmt, num, priceForTarget, type Inputs, type Target } from "@/lib/calc";
+import { caretToEnd, cleanNumber } from "../ui/numberField";
 import { FollowTip } from "./FollowTip";
 
 export type Var = "ret" | "ads" | "price" | "orders";
@@ -204,10 +205,10 @@ export function SensitivityChart({ inp, cur, target, setTarget, focusTarget, ini
             ))}
           </div>
           <span className="relative block w-32">
-            <input ref={targetInput} type="number" inputMode="decimal" min={0} step="any" value={target.value} placeholder={target.kind === "margin" ? "مثلاً 30" : "مثلاً 25"}
+            <input ref={targetInput} type="text" inputMode="decimal" autoComplete="off" value={target.value} placeholder={target.kind === "margin" ? "مثلاً 30" : "مثلاً 25"}
               aria-label={target.kind === "margin" ? "الهامش اللي تبيه من سعر البيع" : "الربح اللي تبيه لكل طلب"}
               aria-invalid={!tgt.ok && tgt.reason === "impossible" ? true : undefined}
-              onChange={(e) => setTarget({ ...target, value: e.target.value })}
+              onChange={(e) => setTarget({ ...target, value: cleanNumber(e.target.value) })} onClick={caretToEnd}
               className={`block w-full min-w-0 rounded-lg border bg-bg py-2 pl-11 pr-3 text-right text-base tabular text-ink [direction:ltr]
                 transition-[border-color,box-shadow] duration-200 hover:border-muted/60 focus-visible:outline-2 focus-visible:outline-offset-1
                 ${!tgt.ok && tgt.reason === "impossible" ? "border-warn focus-visible:outline-warn" : "border-line focus-visible:outline-accent"}`} />

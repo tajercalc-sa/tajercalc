@@ -13,6 +13,7 @@ import { PrintReport } from "./PrintReport";
 import { BreakdownBar } from "./charts/BreakdownBar";
 import { SensitivityChart } from "./charts/SensitivityChart";
 import { InfoTip } from "./ui/InfoTip";
+import { caretToEnd, cleanNumber } from "./ui/numberField";
 import { useToast } from "./ui/Toast";
 import { usePulseKey, useTweened } from "@/lib/motion";
 
@@ -33,8 +34,8 @@ function NumInput({ value, onChange, suffix, ariaLabel, flashKey, step, id, read
   return (
     <span className="relative mt-1 block">
       <input
-        key={flashKey} id={id} readOnly={readOnly} type="number" inputMode="decimal" min={0} step={step ?? "any"}
-        value={value} aria-label={ariaLabel} onChange={(e) => onChange(e.target.value)}
+        key={flashKey} id={id} readOnly={readOnly} type="text" inputMode={step === "1" ? "numeric" : "decimal"} autoComplete="off"
+        value={value} aria-label={ariaLabel} onChange={(e) => onChange(cleanNumber(e.target.value))} onClick={caretToEnd}
         aria-invalid={invalid || undefined} title={invalid ? "القيمة السالبة تُحسب صفراً" : undefined}
         className={`${box} tabular py-2.5 pr-3 text-right [direction:ltr] ${suffix ? "pl-11" : "pl-3"} ${flashKey ? "just-changed" : ""}
           ${invalid ? "border-loss bg-loss/5 focus-visible:outline-loss" : ""} ${readOnly ? "cursor-default border-accent/40 bg-accent/5" : ""}`}
