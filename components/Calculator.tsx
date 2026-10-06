@@ -317,12 +317,16 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const setWsField = (k: "total" | "ship" | "qty", v: string) => {
     const n = { ...ws, [k]: v };
     setWs(n);
-    const u = wsUnitOf(n);
+    wsApply(n); // same render as the typing, no lag
+  };
+  const wsApply = (w: typeof ws) => {
+    const u = wsUnitOf(w);
     // tiny unit costs keep 3 significant digits instead of rounding to 0
-    set("cost", u === null ? "0" : String(u >= 1 ? +u.toFixed(2) : +u.toPrecision(3))); // same render as the typing, no lag
+    set("cost", u === null ? "0" : String(u >= 1 ? +u.toFixed(2) : +u.toPrecision(3)));
   };
   const toggleWs = () => {
-    if (wsOpen) setWs({ total: "", ship: "", qty: "" }); // hiding releases the cost field; reopening starts fresh
+    // hiding keeps the numbers and releases the cost field; reopening takes it back with the same numbers
+    if (!wsOpen && wsTouched) wsApply(ws);
     setWsOpen(!wsOpen);
   };
   // The platform fees and plan prices are in Saudi riyals; say so when the visitor picked another currency.
