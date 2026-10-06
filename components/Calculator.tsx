@@ -25,19 +25,19 @@ const box =
   "hover:border-muted/60 disabled:cursor-not-allowed disabled:opacity-50 " +
   "focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
-function NumInput({ value, onChange, suffix, ariaLabel, flashKey, step, id }: {
-  value: string; onChange: (v: string) => void; suffix?: string; ariaLabel?: string; flashKey?: number; step?: string; id?: string;
+function NumInput({ value, onChange, suffix, ariaLabel, flashKey, step, id, readOnly }: {
+  value: string; onChange: (v: string) => void; suffix?: string; ariaLabel?: string; flashKey?: number; step?: string; id?: string; readOnly?: boolean;
 }) {
   // Negative numbers are counted as 0 by the math, so say so instead of silently ignoring them.
   const invalid = value.trim() !== "" && parseFloat(value) < 0;
   return (
     <span className="relative mt-1 block">
       <input
-        key={flashKey} id={id} type="number" inputMode="decimal" min={0} step={step ?? "any"}
+        key={flashKey} id={id} readOnly={readOnly} type="number" inputMode="decimal" min={0} step={step ?? "any"}
         value={value} aria-label={ariaLabel} onChange={(e) => onChange(e.target.value)}
         aria-invalid={invalid || undefined} title={invalid ? "القيمة السالبة تُحسب صفراً" : undefined}
         className={`${box} tabular py-2.5 pr-3 text-right [direction:ltr] ${suffix ? "pl-11" : "pl-3"} ${flashKey ? "just-changed" : ""}
-          ${invalid ? "border-loss bg-loss/5 focus-visible:outline-loss" : ""}`}
+          ${invalid ? "border-loss bg-loss/5 focus-visible:outline-loss" : ""} ${readOnly ? "cursor-default border-accent/40 bg-accent/5" : ""}`}
       />
       {suffix && (
         <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">{suffix}</span>
@@ -254,6 +254,8 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const reset = () => {
     const before = { inp, cur, productName, plan, target };
     apply(base);
+    setWsOpen(false);
+    setWs({ total: "", ship: "", qty: "" });
     toast.show("رجعت الأرقام للقيم الافتراضية", {
       kind: "info",
       action: { label: "تراجع", run: () => apply(before) },
@@ -308,10 +310,16 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
   const setWsField = (k: "total" | "ship" | "qty", v: string) => {
     const n = { ...ws, [k]: v };
     setWs(n);
-    const q = num(n.qty);
-    if (q > 0 && num(n.total) > 0) set("cost", String(+((num(n.total) + num(n.ship)) / q).toFixed(2)));
+    // update the cost in the same render (the effect below covers reopening the helper)
+    if (num(n.qty) > 0 && num(n.total) > 0) set("cost", String(+((num(n.total) + num(n.ship)) / num(n.qty)).toFixed(2)));
   };
   const wsUnit = num(ws.qty) > 0 && num(ws.total) > 0 ? (num(ws.total) + num(ws.ship)) / num(ws.qty) : null;
+  // While the wholesale helper is open and complete, it owns the cost field (locked), so the two never disagree.
+  const costLocked = wsOpen && wsUnit !== null;
+  const wsCost = wsUnit === null ? "" : String(+wsUnit.toFixed(2));
+  useEffect(() => {
+    if (costLocked && inp.cost !== wsCost) set("cost", wsCost);
+  }, [costLocked, wsCost, inp.cost, set]);
   // The platform fees and plan prices are in Saudi riyals; say so when the visitor picked another currency.
   const curNote = cur && cur !== "ر.س"
     ? "رسوم المنصة وأسعار الباقات المعبّأة تلقائياً بالريال السعودي. إذا عملتك مختلفة، عدّل الأرقام بعملتك."
@@ -341,7 +349,8 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             <div className="clear-both grid grid-cols-2 items-end gap-3">
               <Field label="سعر البيع" suffix={cur} value={inp.price} onChange={(v) => set("price", v)} />
               <Field label="الخصم" suffix="%" value={inp.disc} onChange={(v) => set("disc", v)} />
-              <Field label="تكلفة المنتج عليك" suffix={cur} value={inp.cost} onChange={(v) => set("cost", v)} />
+              <Field label="تكلفة المنتج عليك" suffix={cur} value={inp.cost} onChange={(v) => set("cost", v)}
+                readOnly={costLocked} hint={costLocked ? "من حساب الجملة تحت" : undefined} />
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
               {inp.adMode === "order" && <Field label={num(inp.confirm) > 0 && num(inp.confirm) < 100 ? "الإعلان لكل طلب قبل التأكيد" : "تكلفة الإعلان لكل طلب"}
                 suffix={cur} value={inp.ads} onChange={(v) => set("ads", v)} />}
@@ -371,7 +380,7 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-muted">
                   {wsUnit === null ? "اكتب إجمالي الفاتورة وعدد القطع، وتُحسب تكلفة القطعة وتوضع في خانة التكلفة فوق."
-                    : <>تكلفة القطعة <b className="text-ink"><Money v={wsUnit} cur={cur} /></b> (الفاتورة + الشحن والجمارك ÷ عدد القطع)، وقد وُضعت في خانة التكلفة.</>}
+                    : <>تكلفة القطعة <b className="text-ink"><Money v={wsUnit} cur={cur} /></b> (الفاتورة + الشحن والجمارك ÷ عدد القطع). خانة التكلفة فوق مربوطة بهذا الحساب، أخفه إذا تبغى تكتبها بنفسك.</>}
                 </p>
               </div>
             )}
