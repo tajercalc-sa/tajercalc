@@ -318,7 +318,8 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
     const n = { ...ws, [k]: v };
     setWs(n);
     const u = wsUnitOf(n);
-    set("cost", u === null ? "0" : String(+u.toFixed(2))); // same render as the typing, no lag
+    // tiny unit costs keep 3 significant digits instead of rounding to 0
+    set("cost", u === null ? "0" : String(u >= 1 ? +u.toFixed(2) : +u.toPrecision(3))); // same render as the typing, no lag
   };
   const toggleWs = () => {
     if (wsOpen) setWs({ total: "", ship: "", qty: "" }); // hiding releases the cost field; reopening starts fresh
@@ -353,8 +354,8 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
             <div className="clear-both grid grid-cols-2 items-end gap-3">
               <Field label="سعر البيع" suffix={cur} value={inp.price} onChange={(v) => set("price", v)} />
               <Field label="الخصم" suffix="%" value={inp.disc} onChange={(v) => set("disc", v)} />
-              <Field label="تكلفة المنتج عليك" suffix={cur} value={inp.cost} onChange={(v) => set("cost", v)}
-                readOnly={costLocked} hint={costLocked ? "من حساب الجملة تحت" : undefined} />
+              <Field label={costLocked ? "تكلفة المنتج (من الجملة)" : "تكلفة المنتج عليك"} ariaLabel="تكلفة المنتج عليك" suffix={cur}
+                value={inp.cost} onChange={(v) => set("cost", v)} readOnly={costLocked} />
               <Field label="الشحن عليك لكل طلب" suffix={cur} value={inp.ship} onChange={(v) => set("ship", v)} />
               {inp.adMode === "order" && <Field label={num(inp.confirm) > 0 && num(inp.confirm) < 100 ? "الإعلان لكل طلب قبل التأكيد" : "تكلفة الإعلان لكل طلب"}
                 suffix={cur} value={inp.ads} onChange={(v) => set("ads", v)} />}
@@ -385,6 +386,8 @@ export function Calculator({ siteName, platform = SALLA, preset = NO_PRESET }: {
                 <p className="mt-2 text-xs leading-relaxed text-muted">
                   {wsUnit === null
                     ? wsTouched ? "أكمل إجمالي الفاتورة وعدد القطع. حتى ذلك الحين التكلفة فوق صفر." : "اكتب إجمالي الفاتورة وعدد القطع، وتُحسب تكلفة القطعة وتوضع في خانة التكلفة فوق."
+                    : wsUnit < 0.01
+                    ? <>تكلفة القطعة أقل من هللة (<span className="num">{inp.cost}</span>). تأكد من عدد القطع وإجمالي الفاتورة.</>
                     : <>تكلفة القطعة <b className="text-ink"><Money v={wsUnit} cur={cur} /></b> (الفاتورة + الشحن والجمارك ÷ عدد القطع). خانة التكلفة فوق مربوطة بهذا الحساب، أخفه إذا تبغى تكتبها بنفسك.</>}
                 </p>
               </div>
