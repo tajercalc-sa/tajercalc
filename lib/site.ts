@@ -19,6 +19,12 @@ export const NAV = [
   { href: "/contact/", label: "تواصل معنا" },
 ];
 
+/** Fee explainers (informational articles that send readers to the matching calculator). */
+export const ARTICLES = [
+  { href: "/salla-fees/", label: "رسوم سلة" },
+  { href: "/zid-fees/", label: "رسوم زد" },
+];
+
 /** Landing pages: the same calculator, preset for one search intent, with its own article. */
 export const TOOLS = [
   { href: "/salla-profit-calculator/", label: "حاسبة أرباح سلة" },

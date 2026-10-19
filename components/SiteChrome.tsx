@@ -1,4 +1,4 @@
-import { NAV, SITE, TOOLS } from "@/lib/site";
+import { ARTICLES, NAV, SITE, TOOLS } from "@/lib/site";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function SiteHeader() {
@@ -34,6 +34,7 @@ export function SiteFooter() {
       <nav aria-label="الحاسبات" className="mx-auto flex max-w-5xl flex-wrap gap-x-4 gap-y-1 border-b border-line px-4 py-3">
         <a className="text-accent" href="/">حاسبة أرباح المتجر</a>
         {TOOLS.map((t) => <a key={t.href} className="text-accent" href={t.href}>{t.label}</a>)}
+        {ARTICLES.map((a) => <a key={a.href} className="text-accent" href={a.href}>{a.label}</a>)}
       </nav>
       <div className="mx-auto flex max-w-5xl flex-wrap gap-x-4 gap-y-1 px-4 py-3">
         <span>© {new Date().getFullYear()} {SITE.name}</span>
