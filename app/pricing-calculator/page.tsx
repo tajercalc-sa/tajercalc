@@ -5,9 +5,10 @@ import { SALLA_SAMPLE_PAYMENTS } from "@/lib/calc";
 const HREF = "/pricing-calculator/";
 
 export const metadata: Metadata = {
-  title: "حاسبة سعر البيع: بكم أبيع منتجي لأربح الهامش اللي أبغاه؟",
+  title: "بكم أبيع منتجي؟ حاسبة سعر البيع والهامش للمتاجر",
+  // the snippet answers the searcher's question directly, with a worked example (115.69 is checked in tests)
   description:
-    "احسب سعر البيع المناسب لمنتجك في المتجر الإلكتروني ليحقق هامش ربح أو ربحاً ثابتاً لكل طلب بعد الشحن ورسوم الدفع والمرتجعات والإعلان، وأقل سعر بدون خسارة.",
+    "اكتب تكلفة منتجك والهامش اللي تبغاه، ويطلع لك سعر البيع فوراً بعد رسوم الدفع والشحن والمرتجعات والإعلان. مثال: تكلفة 40 وشحن 15 وإعلان 20 لهامش 25% = بِع بـ 115.69. مجانية وبدون تسجيل.",
   alternates: { canonical: HREF },
 };
 

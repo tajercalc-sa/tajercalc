@@ -1,6 +1,6 @@
 // Differential test: the original HTML prototype vs lib/calc.ts on random inputs.
 import { readFileSync } from "node:fs";
-import { calculate, fmt, priceForTarget, DEFAULT_INPUTS, type Inputs } from "../lib/calc.ts";
+import { calculate, fmt, priceForTarget, DEFAULT_INPUTS, SALLA_SAMPLE_PAYMENTS, type Inputs } from "../lib/calc.ts";
 
 const html = readFileSync(new URL("./fixtures/prototype.html", import.meta.url), "utf8");
 const els: Record<string, any> = {};
@@ -99,5 +99,9 @@ const codPage = calculate({ ...DEFAULT_INPUTS, confirm: "75", ret: "20",
   payments: [{ share: "30", pct: "1", fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "70", pct: "0", fixed: "0" }] });
 const roasOk = Math.abs(codPage.breakEvenRoas! - 100 / codPage.maxAdCostPerLead) < 1e-9 && fmt(codPage.breakEvenRoas!) === "4.53";
 console.log(roasOk ? "break-even ROAS with 75% confirmation = 4.53x ✓" : `ROAS FAILED ${codPage.breakEvenRoas}`);
+// pricing page meta description quotes this example (Salla fees, 25% margin → 115.69)
+const pr = priceForTarget(calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS }), { kind: "margin", value: "25" });
+const prOk = pr.ok && fmt(pr.priceBeforeDiscount) === "115.69";
+console.log(prOk ? "pricing page example: 25% margin → 115.69 ✓" : "pricing example FAILED");
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk ? 0 : 1);
