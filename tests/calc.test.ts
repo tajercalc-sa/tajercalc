@@ -103,5 +103,12 @@ console.log(roasOk ? "break-even ROAS with 75% confirmation = 4.53x ✓" : `ROAS
 const pr = priceForTarget(calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS }), { kind: "margin", value: "25" });
 const prOk = pr.ok && fmt(pr.priceBeforeDiscount) === "115.69";
 console.log(prOk ? "pricing page example: 25% margin → 115.69 ✓" : "pricing example FAILED");
+// /guide-pricing/ quotes these (pricing-page assumptions, 25% margin)
+const gp = (o: Partial<Inputs>) => { const r = calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS, ...o }); const t = priceForTarget(r, { kind: "margin", value: "25" }); return [fmt(r.minPrice!), t.ok ? fmt(t.priceBeforeDiscount) : ""].join("/"); };
+const guideOk = gp({ cost: "10" }) === "52.51/73.18" && gp({ cost: "20" }) === "62.68/87.35" && gp({}) === "83.01/115.69"
+  && gp({ cost: "80" }) === "123.68/172.36" && gp({ cost: "150" }) === "194.85/271.54"
+  && gp({ ads: "10" }).endsWith("/99.94") && gp({ ship: "0" }).endsWith("/92.07")
+  && fmt(calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS, price: "99" }).profit) === "14.15";
+console.log(guideOk ? "pricing guide figures ✓" : "pricing guide figures FAILED");
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk ? 0 : 1);

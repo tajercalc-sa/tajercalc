@@ -23,6 +23,7 @@ export const NAV = [
 export const ARTICLES = [
   { href: "/salla-fees/", label: "رسوم سلة" },
   { href: "/zid-fees/", label: "رسوم زد" },
+  { href: "/guide-pricing/", label: "دليل التسعير" },
 ];
 
 /** Landing pages: the same calculator, preset for one search intent, with its own article. */
