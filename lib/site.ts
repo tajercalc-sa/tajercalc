@@ -2,7 +2,8 @@ export const SITE = {
   name: process.env.NEXT_PUBLIC_SITE_NAME || "حاسبة تاجر",
   url: (process.env.NEXT_PUBLIC_SITE_URL || "https://tajercalc.com").replace(/\/$/, ""),
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "tajercalc@gmail.com",
-  adsClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "",
+  // AdSense publisher id (public; it also appears in ads.txt)
+  adsClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "ca-pub-5102038600553073",
   adSlots: {
     afterTool: process.env.NEXT_PUBLIC_AD_SLOT_AFTER_TOOL || "",
     inArticle: process.env.NEXT_PUBLIC_AD_SLOT_IN_ARTICLE || "",

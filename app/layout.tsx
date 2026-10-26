@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { SITE } from "@/lib/site";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -47,6 +46,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* AdSense: the plain async tag in <head>, exactly as Google gives it, so the site check finds it in the HTML */}
+        {SITE.adsClient && (
+          <script async crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE.adsClient}`} />
+        )}
       </head>
       <body className="min-h-dvh font-sans leading-relaxed antialiased [padding-bottom:env(safe-area-inset-bottom)]">
         <ToastProvider>
@@ -54,10 +58,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <SiteFooter />
         </ToastProvider>
-        {SITE.adsClient && (
-          <Script async strategy="afterInteractive" crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE.adsClient}`} />
-        )}
       </body>
     </html>
   );
