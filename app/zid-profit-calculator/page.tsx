@@ -17,7 +17,7 @@ export default function Page() {
       href={HREF}
       h1="حاسبة أرباح زد"
       appName="حاسبة أرباح متجر زد"
-      intro="الحاسبة معبأة برسوم زد باي المعلنة لمدى والبطاقات والتقسيط، وباقة الانطلاقة. اختر باقتك، وأدخل سعر منتجك وتكلفته وشحنك، وشوف صافي الربح لكل طلب وفي الشهر."
+      intro={<>الحاسبة معبأة برسوم زد باي المعلنة لمدى والبطاقات والتقسيط، وباقة الانطلاقة. اختر باقتك، وأدخل سعر منتجك وتكلفته وشحنك، وشوف صافي الربح لكل طلب وفي الشهر. تبغى تفاصيل الأسعار أولاً؟ اقرأ <a href="/zid-fees/" className="text-accent underline underline-offset-4">أسعار باقات زد ورسومها</a>.</>}
       platform={ZID}
       preset={{ storageKey: "zid", plan: "99", inputs: { payments: ZID_SAMPLE_PAYMENTS, fixedMonthly: "99" } }}
     >

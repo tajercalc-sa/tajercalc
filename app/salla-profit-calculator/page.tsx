@@ -18,7 +18,7 @@ export default function Page() {
       href={HREF}
       h1="حاسبة أرباح سلة"
       appName="حاسبة أرباح متجر سلة"
-      intro="الحاسبة معبأة برسوم سلة المعلنة لمدى والبطاقات وباقة Plus. غيّر سعر منتجك وتكلفته وشحنك، وشوف صافي الربح الحقيقي لكل طلب وفي الشهر."
+      intro={<>الحاسبة معبأة برسوم سلة المعلنة لمدى والبطاقات وباقة Plus. غيّر سعر منتجك وتكلفته وشحنك، وشوف صافي الربح الحقيقي لكل طلب وفي الشهر. تبغى تفاصيل الباقات والرسوم أولاً؟ اقرأ <a href="/salla-fees/" className="text-accent underline underline-offset-4">رسوم سلة 2026</a>.</>}
       platform={SALLA}
       preset={{ storageKey: "salla", plan: "99", inputs: { payments: SALLA_SAMPLE_PAYMENTS, fixedMonthly: "99" } }}
     >

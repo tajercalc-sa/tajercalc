@@ -6,7 +6,7 @@ import { AdSlot } from "@/components/AdSlot";
 // Zid Pay fees (Growth plan) from zid.sa/ar/solutions/payments and help.zid.sa, deposit rules and the mada
 // cap from help.zid.sa/about_zidpay and the Zid Pay terms (19 Oct 2026). Per-order numbers come from lib/calc.ts.
 export const metadata: Metadata = {
-  title: "رسوم زد 2026: الباقات ورسوم زد باي والإيداع وكم يبقى لك",
+  title: "أسعار باقات زد 2026 ورسومها: الاشتراك الشهري وزد باي والإيداع",
   description:
     "كم تأخذ زد من كل طلب؟ أسعار باقات زد الشهرية والسنوية، ورسوم زد باي لمدى والبطاقات والتقسيط مع الضريبة، ورسوم الإيداع 3 ريال، ومقارنة سريعة مع سلة.",
   alternates: { canonical: "/zid-fees/" },
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <main className="prose-ar mx-auto max-w-3xl px-4 py-8">
-<h1>رسوم زد 2026: كم تأخذ زد من كل طلب؟</h1>
+<h1>أسعار باقات زد 2026 ورسومها: كم تأخذ زد من كل طلب؟</h1>
 <p>تكلفة البيع في زد من أربعة أجزاء: <strong>اشتراك الباقة</strong>، و<strong>رسوم زد باي</strong> على كل عملية دفع إلكتروني، و<strong>ضريبة 15%</strong> على هذه الرسوم، و<strong>3 ريال لكل إيداع</strong> في حسابك البنكي. تحت كل جزء بالأرقام، ومحسوب بنفس <a href="/zid-profit-calculator/">حاسبة أرباح زد</a>.</p>
 
 <h2>أسعار باقات زد</h2>
