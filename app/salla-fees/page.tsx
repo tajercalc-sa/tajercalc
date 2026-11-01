@@ -85,7 +85,7 @@ export default function Page() {
 <h3>هل Apple Pay أغلى؟</h3>
 <p>لا، يأخذ رسوم البطاقة اللي داخله: مدى برسوم مدى، والبطاقة الائتمانية برسومها.</p>
 
-<div className="callout">احسب ربحك الحقيقي بعد رسوم سلة في <a href="/salla-profit-calculator/">حاسبة أرباح سلة</a>، وقارنها مع <a href="/zid-fees/">رسوم زد</a>.</div>
+<div className="callout">احسب ربحك الحقيقي بعد رسوم سلة في <a href="/salla-profit-calculator/">حاسبة أرباح سلة</a>، وقارنها مع <a href="/zid-fees/">رسوم زد</a>، أو اقرأ <a href="/salla-vs-zid/">سلة أو زد: أيهم أرخص؟</a>.</div>
 <p className="text-sm text-muted">آخر مراجعة لأسعار سلة ورسومها: {SITE.feesReviewed}. الرسوم قد تتغير، ولوحة تحكم متجرك هي المرجع النهائي.</p>
     </main>
   );

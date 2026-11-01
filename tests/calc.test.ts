@@ -110,5 +110,9 @@ const guideOk = gp({ cost: "10" }) === "52.51/73.18" && gp({ cost: "20" }) === "
   && gp({ ads: "10" }).endsWith("/99.94") && gp({ ship: "0" }).endsWith("/92.07")
   && fmt(calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS, price: "99" }).profit) === "14.15";
 console.log(guideOk ? "pricing guide figures ✓" : "pricing guide figures FAILED");
+// /salla-vs-zid/ quotes these (55% mada, 40% cards, 5% COD; Salla cards 2.2%, Zid 2.3%)
+const vzMix = (card: string) => [{ share: "55", pct: "1", fixed: "1" }, { share: "40", pct: card, fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "5", pct: "0", fixed: "0" }];
+const vzOk = fmt(calculate({ ...DEFAULT_INPUTS, payments: vzMix("2.2") }).profit) === "15.04" && fmt(calculate({ ...DEFAULT_INPUTS, payments: vzMix("2.3") }).profit) === "15";
+console.log(vzOk ? "salla vs zid profit per order 15.04 / 15.00 ✓" : "salla vs zid FAILED");
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk ? 0 : 1);
