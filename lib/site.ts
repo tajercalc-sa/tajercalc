@@ -35,4 +35,5 @@ export const TOOLS = [
   { href: "/cod-calculator/", label: "حاسبة الدفع عند الاستلام" },
   { href: "/roas-calculator/", label: "حاسبة ROAS والإعلانات" },
   { href: "/pricing-calculator/", label: "حاسبة سعر البيع" },
+  { href: "/digital-cards-calculator/", label: "حاسبة أرباح بطاقات الشحن" },
 ];

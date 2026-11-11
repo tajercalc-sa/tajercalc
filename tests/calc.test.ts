@@ -114,5 +114,14 @@ console.log(guideOk ? "pricing guide figures ✓" : "pricing guide figures FAILE
 const vzMix = (card: string) => [{ share: "55", pct: "1", fixed: "1" }, { share: "40", pct: card, fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "5", pct: "0", fixed: "0" }];
 const vzOk = fmt(calculate({ ...DEFAULT_INPUTS, payments: vzMix("2.2") }).profit) === "15.04" && fmt(calculate({ ...DEFAULT_INPUTS, payments: vzMix("2.3") }).profit) === "15";
 console.log(vzOk ? "salla vs zid profit per order 15.04 / 15.00 ✓" : "salla vs zid FAILED");
+// /digital-cards-calculator/ quotes these (no ship/returns/ads; 60% mada, 40% cards)
+const dc = (price: string, cost: string, m = "60", c = "40") => calculate({ ...DEFAULT_INPUTS, ship: "0", ret: "0", ads: "0", price, cost,
+  payments: [{ share: m, pct: "1", fixed: "1" }, { share: c, pct: "2.2", fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }] });
+const dcT = priceForTarget(dc("50", "47"), { kind: "amount", value: "3" });
+const dcOk = fmt(dc("50", "47").profit) === "1" && fmt(dc("50", "47").minPrice!) === "48.98" && fmt(dc("100", "94").profit) === "3.15"
+  && fmt(dc("200", "188").profit) === "7.45" && fmt(dc("500", "470").profit) === "20.34"
+  && fmt(dc("50", "47", "100", "0").profit) === "1.28" && fmt(dc("50", "47", "0", "100").profit) === "0.59"
+  && dcT.ok && fmt(dcT.priceBeforeDiscount) === "52.04";
+console.log(dcOk ? "digital cards page figures ✓" : "digital cards FAILED");
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk && dcOk ? 0 : 1);
