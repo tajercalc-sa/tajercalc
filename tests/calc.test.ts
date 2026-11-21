@@ -123,5 +123,17 @@ const dcOk = fmt(dc("50", "47").profit) === "1" && fmt(dc("50", "47").minPrice!)
   && fmt(dc("50", "47", "100", "0").profit) === "1.28" && fmt(dc("50", "47", "0", "100").profit) === "0.59"
   && dcT.ok && fmt(dcT.priceBeforeDiscount) === "52.04";
 console.log(dcOk ? "digital cards page figures ✓" : "digital cards FAILED");
+// /guide-margin/ and /guide-bnpl/ quote these
+const gmD = { ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS };
+const gmR = calculate(gmD);
+const gmT = (m: string) => { const t = priceForTarget(gmR, { kind: "margin", value: m }); return t.ok ? fmt(t.priceBeforeDiscount) : ""; };
+const gmOk = fmt(gmR.profit) === "15.04" && gmT("10") === "93.59" && gmT("20") === "107.24" && gmT("30") === "125.57"
+  && [["99", 7], ["299", 20], ["1000", 67], ["3000", 200]].every(([f, n]) => calculate({ ...gmD, fixedMonthly: String(f) }).breakEvenOrders === n)
+  && fmt(calculate({ ...gmD, disc: "10" }).profit) === "6.18";
+const bn = (pct: string) => calculate({ ...DEFAULT_INPUTS, price: "300", cost: "150",
+  payments: [{ share: "100", pct, fixed: "1" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }, { share: "0", pct: "0", fixed: "0" }] }).profit;
+const bnOk = fmt(bn("1")) === "94.36" && fmt(bn("3.3")) === "87.22" && fmt(bn("4")) === "85.05" && fmt(bn("6")) === "78.84" && fmt(bn("8")) === "72.63"
+  && Math.ceil(9436 / bn("4")) === 111 && Math.ceil(9436 / bn("6")) === 120 && Math.ceil(9436 / bn("8")) === 130;
+console.log(gmOk && bnOk ? "margin and BNPL guide figures ✓" : `margin/BNPL FAILED ${gmOk} ${bnOk}`);
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk && dcOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk && dcOk && gmOk && bnOk ? 0 : 1);
