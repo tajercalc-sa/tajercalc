@@ -135,5 +135,14 @@ const bn = (pct: string) => calculate({ ...DEFAULT_INPUTS, price: "300", cost: "
 const bnOk = fmt(bn("1")) === "94.36" && fmt(bn("3.3")) === "87.22" && fmt(bn("4")) === "85.05" && fmt(bn("6")) === "78.84" && fmt(bn("8")) === "72.63"
   && Math.ceil(9436 / bn("4")) === 111 && Math.ceil(9436 / bn("6")) === 120 && Math.ceil(9436 / bn("8")) === 130;
 console.log(gmOk && bnOk ? "margin and BNPL guide figures ✓" : `margin/BNPL FAILED ${gmOk} ${bnOk}`);
+// /guide-import-cost/ and /guide-break-even/ quote these
+const ic = (cost: string) => calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS, price: "150", cost });
+const icM = (cost: string) => calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS, price: "150", cost, orders: "100" }).monthlyProfit;
+const beG = calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS });
+const icOk = fmt(ic("50").profit) === "50.3" && fmt(ic("60.90").profit) === "40.49" && fmt(ic("70.04").profit) === "32.26"
+  && fmt(icM("50")) === "5,029.67" && fmt(icM("70.04")) === "3,226.07" && fmt(ic("50").minPrice!) === "93.18" && fmt(ic("70.04").minPrice!) === "113.56"
+  && fmt(beG.minPrice!) === "83.01" && fmt(beG.maxAdCost) === "35.04" && fmt(beG.breakEvenRoas!) === "2.85"
+  && calculate({ ...DEFAULT_INPUTS, payments: SALLA_SAMPLE_PAYMENTS, fixedMonthly: "299" }).breakEvenOrders === 20;
+console.log(icOk ? "import-cost and break-even guide figures ✓" : "import/break-even FAILED");
 console.log(`${N} random cases × 7 outputs: ${fails === 0 ? "all identical to prototype ✓" : fails + " mismatches ✗"}`);
-process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk && dcOk && gmOk && bnOk ? 0 : 1);
+process.exit(fails === 0 && anchor && codOk && beOk && tgtOk && discOk && budOk && roasOk && prOk && guideOk && vzOk && dcOk && gmOk && bnOk && icOk ? 0 : 1);
